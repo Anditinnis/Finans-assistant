@@ -1,0 +1,62 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#0a0e27">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>{% block title %}Мой Бюджет{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+
+<div class="bg-blobs">
+    <div class="blob"></div>
+    <div class="blob"></div>
+    <div class="blob"></div>
+</div>
+
+<nav class="navbar">
+    <div class="nav-inner">
+        <a href="{% url 'home' %}" class="logo">📊 <span>Бюджет</span></a>
+
+        <button class="hamburger" id="hamburger" aria-label="Меню" aria-expanded="false">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+
+        <div class="nav-links" id="navLinks">
+            {% if user.is_authenticated %}
+                <div class="user-badge">
+                    <div class="avatar">{{ user.username|first|upper }}</div>
+                    <span class="username">{{ user.username }}</span>
+                </div>
+                <a href="{% url 'dashboard' %}" class="btn btn-outline">Дашборд</a>
+                <a href="{% url 'logout' %}" class="btn btn-ghost">Выйти</a>
+            {% else %}
+                <a href="{% url 'login' %}" class="btn btn-ghost">Вход</a>
+                <a href="{% url 'register' %}" class="btn btn-primary">Начать</a>
+            {% endif %}
+        </div>
+    </div>
+</nav>
+
+<main>
+    {% block content %}{% endblock %}
+</main>
+
+<footer>
+    <div class="container">
+        <p>© 2024 Мой Бюджет · Сделано с ❤️ на Django</p>
+    </div>
+</footer>
+
+<script src="{% static 'js/main.js' %}"></script>
+</body>
+</html>

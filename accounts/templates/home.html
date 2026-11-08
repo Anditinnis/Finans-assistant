@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}Мой Бюджет — умный учёт финансов{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <div class="container">
+        <div class="hero-badge">✨ Новый уровень финансового контроля</div>
+        <h1>
+            Управляй бюджетом<br>
+            <span class="gradient-text">легко и красиво</span>
+        </h1>
+        <p class="lead">
+            Вводи траты прямо в ВК-боте, а на сайте смотри живые графики,
+            аналитику и достигай финансовых целей.
+        </p>
+        <div class="hero-actions">
+            <a href="{% url 'register' %}" class="btn btn-primary btn-lg">Начать бесплатно →</a>
+            <a href="{% url 'login' %}" class="btn btn-outline btn-lg">Войти в аккаунт</a>
+        </div>
+    </div>
+</section>
+
+<section class="features">
+    <div class="container">
+        <h2 class="section-title">Всё для контроля финансов</h2>
+        <p class="section-sub">Три инструмента, которые заменят десятки приложений</p>
+
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">📱</div>
+                <h3>Ввод через ВК</h3>
+                <p>Просто напиши боту «500 еда» — трата мгновенно попадает в систему. Никаких приложений и форм.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">📈</div>
+                <h3>Живые графики</h3>
+                <p>Наглядные диаграммы по категориям, динамика по месяцам и сравнение доходов и расходов.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🎯</div>
+                <h3>Цели и лимиты</h3>
+                <p>Ставь месячные лимиты на категории и отслеживай прогресс накоплений в реальном времени.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="steps">
+    <div class="container">
+        <h2 class="section-title">Как это работает</h2>
+        <p class="section-sub">Три шага до полного контроля над бюджетом</p>
+
+        <div class="steps-grid">
+            <div class="step">
+                <div class="step-num">1</div>
+                <h4>Регистрируйся</h4>
+                <p>Создай аккаунт за 20 секунд — нужен только email и пароль.</p>
+            </div>
+            <div class="step">
+                <div class="step-num">2</div>
+                <h4>Привяжи ВК</h4>
+                <p>Получи код на сайте и отправь его боту — аккаунты свяжутся.</p>
+            </div>
+            <div class="step">
+                <div class="step-num">3</div>
+                <h4>Управляй</h4>
+                <p>Пиши траты боту, а на сайте смотри красивую аналитику.</p>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

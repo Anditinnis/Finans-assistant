@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}Дашборд{% endblock %}
+
+{% block content %}
+<div class="container dashboard">
+    <div class="dashboard-header">
+        <h1>Привет, <span>{{ user.username }}</span> 👋</h1>
+        <p style="color: var(--text-muted);">Вот твой финансовый обзор на сегодня</p>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-label">Баланс</div>
+            <div class="stat-value positive">0 ₽</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Доходы за месяц</div>
+            <div class="stat-value positive">0 ₽</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Расходы за месяц</div>
+            <div class="stat-value negative">0 ₽</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Транзакций</div>
+            <div class="stat-value">0</div>
+        </div>
+    </div>
+
+    <div class="empty-state">
+        <div class="icon">📭</div>
+        <h3>Пока нет транзакций</h3>
+        <p>Начни добавлять траты через ВК-бота или прямо на сайте — здесь появятся графики и аналитика.</p>
+        <a href="#" class="btn btn-primary">Добавить первую трату</a>
+    </div>
+</div>
+{% endblock %}
