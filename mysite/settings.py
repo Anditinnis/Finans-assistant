@@ -12,8 +12,8 @@ https://docs.djangoproject.com/en/6.1/ref/settings/
 
 from pathlib import Path
 import os
-import dj_database_url
 from dotenv import load_dotenv
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -21,11 +21,19 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
-SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-o#%o8$ql0$p%1jaam=y^@9&_t72ua8+9snx)3=lhp^us-b3f-6')
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-o#%o8$ql0p%1jaam=y^@9&_t72ua8+9snx)3=lhp^us-b3f-6')
+
+# По умолчанию False. Uppcoder передает переменную, но для локальной разработки можно поменять.
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
+# Разрешаем все хосты (для теста с Uppcoder это безопасно)
 ALLOWED_HOSTS = ['*']
 
+# Настройка для корректной работы CSRF за HTTPS-прокси Uppcoder
+if os.environ.get('UPPCODER_SELF_URL'):
+    CSRF_TRUSTED_ORIGINS = [os.environ['UPPCODER_SELF_URL']]
+elif os.environ.get('UPPCODER_SELF_HOST'):
+    CSRF_TRUSTED_ORIGINS = [f"https://{os.environ['UPPCODER_SELF_HOST']}"]
 
 # Application definition
 
@@ -73,20 +81,28 @@ WSGI_APPLICATION = 'mysite.wsgi.application'
 
 
 # Database
-# https://docs.djangoproject.com/en/6.1/ref/settings/#databases
+# Конфигурация для Uppcoder (использует автоматически проброшенные переменные окружения)
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.environ['POSTGRES_DB'],
-        'USER': os.environ['POSTGRES_USER'],
-        'PASSWORD': os.environ['POSTGRES_PASSWORD'],
-        'HOST': os.environ['POSTGRES_HOST'],
-        'PORT': os.environ.get('POSTGRES_PORT', '5432'),
+if os.environ.get('POSTGRES_DB'):
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.environ.get('POSTGRES_DB'),
+            'USER': os.environ.get('POSTGRES_USER'),
+            'PASSWORD': os.environ.get('POSTGRES_PASSWORD'),
+            'HOST': os.environ.get('POSTGRES_HOST'),
+            'PORT': os.environ.get('POSTGRES_PORT', '5432'),
+        }
     }
-}
+else:
+    # Если переменных нет, значит мы на локальном компьютере (Development)
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
-CSRF_TRUSTED_ORIGINS = [os.environ['UPPCODER_SELF_URL']] if os.environ.get('UPPCODER_SELF_URL') else []
 
 # Password validation
 # https://docs.djangoproject.com/en/6.1/ref/settings/#auth-password-validators
@@ -114,7 +130,6 @@ LANGUAGE_CODE = 'ru-ru'
 TIME_ZONE = 'Europe/Moscow'
 
 USE_I18N = True
-
 USE_TZ = True
 
 
@@ -122,22 +137,18 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.1/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # Куда перенаправлять после входа/выхода
-LOGIN_REDIRECT_URL = 'dashboard'   # позже создадим
+LOGIN_REDIRECT_URL = 'dashboard'
 LOGOUT_REDIRECT_URL = 'home'
 LOGIN_URL = 'login'
 
 # Email
-# https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
-MAILERS = {
-    'default': {
-        'BACKEND': 'django.core.mail.backends.console.EmailBackend',
-    },
-}
+# Загрузка .env для локальной разработки
 load_dotenv(BASE_DIR / '.env')
 
 API_URL = os.getenv('API_URL', 'http://127.0.0.1:8000')
 API_SECRET_KEY = os.getenv('API_SECRET_KEY', '')
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
