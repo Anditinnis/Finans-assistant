@@ -31,19 +31,29 @@
             <span></span>
         </button>
 
-        <div class="nav-links" id="navLinks">
-            {% if user.is_authenticated %}
-                <div class="user-badge">
-                    <div class="avatar">{{ user.username|first|upper }}</div>
-                    <span class="username">{{ user.username }}</span>
-                </div>
-                <a href="{% url 'dashboard' %}" class="btn btn-outline">Дашборд</a>
-                <a href="{% url 'logout' %}" class="btn btn-ghost">Выйти</a>
-            {% else %}
-                <a href="{% url 'login' %}" class="btn btn-ghost">Вход</a>
-                <a href="{% url 'register' %}" class="btn btn-primary">Начать</a>
-            {% endif %}
-        </div>
+    <div class="nav-links" id="navLinks">
+    {% if user.is_authenticated %}
+        {# ===== Авторизован: показываем рабочее меню ===== #}
+        <a href="{% url 'dashboard' %}" class="btn btn-outline">Дашборд</a>
+        <a href="{% url 'transactions_list' %}" class="btn btn-ghost">Транзакции</a>
+        <a href="{% url 'categories_list' %}" class="btn btn-ghost">Категории</a>
+        <a href="{% url 'analytics' %}" class="btn btn-ghost">Аналитика</a>
+        
+        <a href="{% url 'profile' %}" class="user-badge" style="text-decoration:none;">
+            <div class="avatar">{{ user.username|first|upper }}</div>
+            <span class="username">{{ user.username }}</span>
+        </a>
+        
+        <form method="post" action="{% url 'logout' %}" class="logout-form">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-ghost">Выйти</button>
+        </form>
+    {% else %}
+        {# ===== Гость: показываем только вход и регистрацию ===== #}
+        <a href="{% url 'login' %}" class="btn btn-ghost">Вход</a>
+        <a href="{% url 'register' %}" class="btn btn-primary">Начать</a>
+    {% endif %}
+</div>
     </div>
 </nav>
 
@@ -58,5 +68,6 @@
 </footer>
 
 <script src="{% static 'js/main.js' %}"></script>
+{% block extra_js %}{% endblock %}
 </body>
 </html>

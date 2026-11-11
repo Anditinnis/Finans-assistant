@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}Категории{% endblock %}
+
+{% block content %}
+<div class="container dashboard">
+    <div class="dashboard-header">
+        <h1>Категории</h1>
+        <p style="color: var(--text-muted);">Управляй категориями доходов и расходов</p>
+    </div>
+
+    {% if messages %}
+        {% for msg in messages %}
+            <div class="alert alert-{{ msg.tags }}">{{ msg }}</div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="two-columns">
+        <div class="form-card">
+            <h3>➕ Новая категория</h3>
+            <form method="post" style="margin-top: 16px;">
+                {% csrf_token %}
+                
+                <div class="form-group">
+                    <label for="{{ form.name.id_for_label }}">Название</label>
+                    {{ form.name }}
+                    {% if form.name.errors %}<div class="errorlist">{{ form.name.errors }}</div>{% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.type.id_for_label }}">Тип</label>
+                    {{ form.type }}
+                    {% if form.type.errors %}<div class="errorlist">{{ form.type.errors }}</div>{% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.icon.id_for_label }}">Иконка (эмодзи)</label>
+                    {{ form.icon }}
+                    {% if form.icon.errors %}<div class="errorlist">{{ form.icon.errors }}</div>{% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.color.id_for_label }}">Цвет</label>
+                    {{ form.color }}
+                    {% if form.color.errors %}<div class="errorlist">{{ form.color.errors }}</div>{% endif %}
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="width:100%; margin-top: 12px;">Создать</button>
+            </form>
+        </div>
+
+        <div class="form-card">
+            <h3>📂 Твои категории ({{ categories|length }})</h3>
+            {% if categories %}
+                <div class="categories-list" style="margin-top: 16px;">
+                    {% for c in categories %}
+                        <div class="category-item">
+                            <div class="category-info">
+                            <span class="category-icon" style="background-color: {{ c.color }}; opacity: 0.9;">
+                                    {{ c.icon }}
+                                </span>
+                                <div>
+                                    <strong>{{ c.name }}</strong>
+                                    <span class="category-type">
+                                        {% if c.type == 'income' %}Доход{% else %}Расход{% endif %}
+                                    </span>
+                                </div>
+                            </div>
+                            <form method="post" action="{% url 'category_delete' c.pk %}"
+                                  onsubmit="return confirm('Удалить категорию и все её транзакции?');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn-icon">🗑️</button>
+                            </form>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p style="color: var(--text-muted); margin-top: 16px;">
+                    Пока пусто. Создай первую категорию — без неё нельзя добавить транзакцию.
+                </p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

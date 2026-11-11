@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block title %}Аналитика{% endblock %}
+
+{% block content %}
+<div class="container dashboard">
+    <div class="dashboard-header">
+        <h1>Аналитика <span>расходов</span></h1>
+        <p style="color: var(--text-muted);">Визуализация твоего бюджета</p>
+    </div>
+
+    <div class="chart-card">
+        <h3>📊 Расходы по категориям</h3>
+        <div class="chart-wrap">
+            <canvas id="categoryChart"></canvas>
+        </div>
+    </div>
+
+    <div class="chart-card">
+        <h3>📈 Динамика доходов и расходов</h3>
+        <div class="chart-wrap">
+            <canvas id="monthlyChart"></canvas>
+        </div>
+    </div>
+
+    <div class="chart-card">
+        <h3>📅 Расходы по дням недели</h3>
+        <div class="chart-wrap">
+            <canvas id="weekdayChart"></canvas>
+        </div>
+    </div>
+
+    <div class="empty-state" style="margin-top: 30px;">
+        <div class="icon">📊</div>
+        <h3>Это демо-данные</h3>
+        <p>Когда появятся реальные транзакции, графики обновятся автоматически.</p>
+        <a href="{% url 'dashboard' %}" class="btn btn-outline">← Назад к дашборду</a>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+    Chart.defaults.color = '#94a3b8';
+    Chart.defaults.borderColor = 'rgba(255,255,255,0.08)';
+    Chart.defaults.font.family = "'Inter', sans-serif";
+
+    new Chart(document.getElementById('categoryChart'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Еда', 'Транспорт', 'Развлечения', 'Жильё', 'Прочее'],
+            datasets: [{
+                data: [12000, 3500, 4800, 25000, 3200],
+                backgroundColor: ['#6366f1', '#8b5cf6', '#ec4899', '#06b6d4', '#10b981'],
+                borderWidth: 0,
+                hoverOffset: 12
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '65%',
+            plugins: {
+                legend: { position: 'right', labels: { padding: 16, boxWidth: 12, boxHeight: 12 } }
+            }
+        }
+    });
+
+    new Chart(document.getElementById('monthlyChart'), {
+        type: 'line',
+        data: {
+            labels: ['Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь'],
+            datasets: [
+                {
+                    label: 'Доходы',
+                    data: [50000, 55000, 52000, 60000, 58000, 62000],
+                    borderColor: '#10b981',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    fill: true, tension: 0.4, borderWidth: 3,
+                    pointRadius: 5, pointBackgroundColor: '#10b981'
+                },
+                {
+                    label: 'Расходы',
+                    data: [42000, 48000, 45000, 52000, 49000, 38000],
+                    borderColor: '#ef4444',
+                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                    fill: true, tension: 0.4, borderWidth: 3,
+                    pointRadius: 5, pointBackgroundColor: '#ef4444'
+                }
+            ]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { position: 'top', labels: { padding: 16 } } },
+            scales: {
+                y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+
+    new Chart(document.getElementById('weekdayChart'), {
+        type: 'bar',
+        data: {
+            labels: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
+            datasets: [{
+                label: 'Расходы (₽)',
+                data: [1200, 800, 1500, 950, 2200, 3500, 2800],
+                backgroundColor: ['#6366f1', '#6366f1', '#6366f1', '#6366f1', '#8b5cf6', '#ec4899', '#ec4899'],
+                borderRadius: 8,
+                borderSkipped: false
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+</script>
+{% endblock %}

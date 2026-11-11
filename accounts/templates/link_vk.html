@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}Привязка ВК{% endblock %}
+
+{% block content %}
+<div class="container dashboard">
+    <div class="dashboard-header">
+        <h1>Привязка <span>ВКонтакте</span></h1>
+        <p style="color: var(--text-muted);">Свяжи аккаунт на сайте с ботом</p>
+    </div>
+
+    <div class="auth-card" style="max-width: 600px; margin: 0 auto;">
+        {% if profile.vk_id %}
+            <h2>Уже привязано ✅</h2>
+            <p class="subtitle">Твой VK ID: <strong>{{ profile.vk_id }}</strong></p>
+            <a href="{% url 'profile' %}" class="btn btn-outline" style="width:100%; margin-top: 20px;">
+                ← Вернуться в профиль
+            </a>
+        {% elif code %}
+            <h2>Код получен ✅</h2>
+            <p class="subtitle">Отправь этот код боту в ВК командой:</p>
+            <div style="background: rgba(0,0,0,0.3); padding: 20px; border-radius: 12px;
+                        text-align: center; font-size: 24px; font-weight: 700;
+                        letter-spacing: 4px; margin: 20px 0; color: var(--accent);">
+                {{ code }}
+            </div>
+            <p style="color: var(--text-muted); font-size: 0.9rem;">
+                В боте напиши:
+                <code style="background: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 6px;">
+                    /link {{ code }}
+                </code>
+            </p>
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 16px;">
+                Код действует 10 минут.
+            </p>
+            <a href="{% url 'profile' %}" class="btn btn-outline" style="width:100%; margin-top: 20px;">
+                ← Вернуться в профиль
+            </a>
+        {% elif error %}
+            <h2>Ошибка ❌</h2>
+            <p style="color: var(--danger);">{{ error }}</p>
+            <a href="{% url 'link_vk' %}" class="btn btn-primary" style="width:100%; margin-top: 20px;">
+                Попробовать снова
+            </a>
+        {% else %}
+            <h2>Привяжи бота 🤖</h2>
+            <p class="subtitle">Нажми кнопку ниже, чтобы получить код.</p>
+            <form method="post">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-primary" style="width:100%;">
+                    Получить код привязки
+                </button>
+            </form>
+            <a href="{% url 'profile' %}" class="btn btn-ghost" style="width:100%; margin-top: 12px;">
+                ← Назад в профиль
+            </a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

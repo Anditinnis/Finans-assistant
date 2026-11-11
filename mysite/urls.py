@@ -1,10 +1,16 @@
 from django.contrib import admin
 from django.urls import path, include
-from django.views.generic import TemplateView
+from accounts import views as account_views
+from finance import api as finance_api
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', TemplateView.as_view(template_name='home.html'), name='home'),
+    path('', account_views.home_view, name='home'),
     path('accounts/', include('django.contrib.auth.urls')),
     path('accounts/', include('accounts.urls')),
+    path('finance/', include('finance.urls')),
+
+    path('api/add/', finance_api.api_add_transaction, name='api_add'),
+    path('api/balance/', finance_api.api_get_balance, name='api_balance'),
+    path('api/link/', finance_api.api_link_vk, name='api_link'),
 ]

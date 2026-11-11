@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+
+{% block title %}Транзакции{% endblock %}
+
+{% block content %}
+<div class="container dashboard">
+    <div class="dashboard-header">
+        <h1>Транзакции</h1>
+        <p style="color: var(--text-muted);">Добавляй, редактируй и удаляй доходы и расходы</p>
+    </div>
+
+    <!-- Сообщения -->
+    {% if messages %}
+        {% for msg in messages %}
+            <div class="alert alert-{{ msg.tags }}">{{ msg }}</div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Сводка -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-label">Доходы (выборка)</div>
+            <div class="stat-value positive">+{{ income_total }} ₽</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Расходы (выборка)</div>
+            <div class="stat-value negative">−{{ expense_total }} ₽</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Баланс (выборка)</div>
+            <div class="stat-value {% if balance >= 0 %}positive{% else %}negative{% endif %}">
+                {{ balance }} ₽
+            </div>
+        </div>
+    </div>
+
+    <div class="two-columns">
+        <!-- Форма добавления -->
+        <div class="form-card">
+            <h3>➕ Добавить транзакцию</h3>
+            {% if not categories %}
+                <p style="color: var(--text-muted); margin-top: 12px;">
+                    Сначала создай хотя бы одну <a href="{% url 'categories_list' %}" style="color: var(--accent);">категорию</a>.
+                </p>
+   {% else %}
+    <form method="post" style="margin-top: 16px;">
+        {% csrf_token %}
+
+        <div class="form-group">
+            <label for="{{ form.category.id_for_label }}">Категория</label>
+            {{ form.category }}
+            {% if form.category.errors %}<div class="errorlist">{{ form.category.errors }}</div>{% endif %}
+        </div>
+
+        <div class="form-group">
+            <label for="{{ form.amount.id_for_label }}">Сумма (₽)</label>
+            {{ form.amount }}
+            {% if form.amount.errors %}<div class="errorlist">{{ form.amount.errors }}</div>{% endif %}
+        </div>
+
+        <div class="form-group">
+            <label for="{{ form.date.id_for_label }}">Дата</label>
+            {{ form.date }}
+            {% if form.date.errors %}<div class="errorlist">{{ form.date.errors }}</div>{% endif %}
+        </div>
+
+        <div class="form-group">
+            <label for="{{ form.comment.id_for_label }}">Комментарий</label>
+            {{ form.comment }}
+            {% if form.comment.errors %}<div class="errorlist">{{ form.comment.errors }}</div>{% endif %}
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width:100%; margin-top: 12px;">
+            Добавить
+        </button>
+    </form>
+{% endif %}
+        </div>
+
+        <!-- Фильтры -->
+        <div class="form-card">
+            <h3>🔍 Фильтры</h3>
+            <form method="get" style="margin-top: 16px;">
+                <div class="form-group">
+                    <label>Тип</label>
+                    <select name="type" class="form-control">
+                        <option value="">Все</option>
+                        <option value="income" {% if type_filter == 'income' %}selected{% endif %}>Доходы</option>
+                        <option value="expense" {% if type_filter == 'expense' %}selected{% endif %}>Расходы</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Категория</label>
+                    <select name="category" class="form-control">
+                        <option value="">Все</option>
+                        {% for c in categories %}
+                            <option value="{{ c.id }}" {% if cat_filter == c.id|stringformat:"s" %}selected{% endif %}>
+                                {{ c.icon }} {{ c.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Период</label>
+                    <select name="period" class="form-control">
+                        <option value="all" {% if period == 'all' %}selected{% endif %}>За всё время</option>
+                        <option value="month" {% if period == 'month' %}selected{% endif %}>Текущий месяц</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-outline" style="width:100%;">Применить</button>
+                <a href="{% url 'transactions_list' %}" class="btn btn-ghost" style="width:100%; margin-top: 8px;">Сбросить</a>
+            </form>
+        </div>
+    </div>
+
+    <!-- Список транзакций -->
+    <div class="transactions-table-wrapper">
+        <h3 style="margin-bottom: 16px;">📋 Список ({{ transactions|length }})</h3>
+
+        {% if transactions %}
+            <table class="transactions-table">
+                <thead>
+                    <tr>
+                        <th>Дата</th>
+                        <th>Категория</th>
+                        <th>Комментарий</th>
+                        <th>Сумма</th>
+                        <th>Источник</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for t in transactions %}
+                        <tr>
+                            <td>{{ t.date|date:"d.m.Y" }}</td>
+                            <td>
+                            <span class="cat-badge" style="background-color: {{ t.category.color }}; color: #fff;">
+                                    {{ t.category.icon }} {{ t.category.name }}
+                                </span>
+                            </td>
+                            <td>{{ t.comment|default:"—" }}</td>
+                            <td class="{% if t.is_income %}amount-income{% else %}amount-expense{% endif %}">
+                                {% if t.is_income %}+{% else %}−{% endif %}{{ t.amount }} ₽
+                            </td>
+                            <td><span class="source-badge">{{ t.get_source_display }}</span></td>
+                            <td class="actions-cell">
+                                <a href="{% url 'transaction_edit' t.pk %}" class="btn-icon">✏️</a>
+                                <form method="post" action="{% url 'transaction_delete' t.pk %}" style="display:inline;"
+                                      onsubmit="return confirm('Удалить транзакцию?');">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn-icon">🗑️</button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <div class="empty-state">
+                <div class="icon">📭</div>
+                <h3>Транзакций нет</h3>
+                <p>Добавь первую через форму выше или измени фильтры.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

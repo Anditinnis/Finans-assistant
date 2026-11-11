@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block title %}Редактирование{% endblock %}
+
+{% block content %}
+<div class="container dashboard">
+    <div class="dashboard-header">
+        <h1>Редактирование <span>транзакции</span></h1>
+    </div>
+
+    <div class="form-card" style="max-width: 500px;">
+        <form method="post">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit" class="btn btn-primary" style="width:100%; margin-top: 12px;">Сохранить</button>
+            <a href="{% url 'transactions_list' %}" class="btn btn-ghost" style="width:100%; margin-top: 8px;">Отмена</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

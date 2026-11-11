@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load humanize %}
 
 {% block title %}Дашборд{% endblock %}
 
@@ -6,33 +7,67 @@
 <div class="container dashboard">
     <div class="dashboard-header">
         <h1>Привет, <span>{{ user.username }}</span> 👋</h1>
-        <p style="color: var(--text-muted);">Вот твой финансовый обзор на сегодня</p>
+        <p style="color: var(--text-muted);">Вот твой финансовый обзор</p>
     </div>
 
     <div class="stats-grid">
         <div class="stat-card">
             <div class="stat-label">Баланс</div>
-            <div class="stat-value positive">0 ₽</div>
+            <div class="stat-value {% if balance >= 0 %}positive{% else %}negative{% endif %}">
+                {{ balance|floatformat:2 }} ₽
+            </div>
         </div>
         <div class="stat-card">
             <div class="stat-label">Доходы за месяц</div>
-            <div class="stat-value positive">0 ₽</div>
+            <div class="stat-value positive">{{ month_income|floatformat:2 }} ₽</div>
         </div>
         <div class="stat-card">
             <div class="stat-label">Расходы за месяц</div>
-            <div class="stat-value negative">0 ₽</div>
+            <div class="stat-value negative">{{ month_expense|floatformat:2 }} ₽</div>
         </div>
         <div class="stat-card">
             <div class="stat-label">Транзакций</div>
-            <div class="stat-value">0</div>
+            <div class="stat-value">{{ transactions_count }}</div>
         </div>
     </div>
 
-    <div class="empty-state">
-        <div class="icon">📭</div>
-        <h3>Пока нет транзакций</h3>
-        <p>Начни добавлять траты через ВК-бота или прямо на сайте — здесь появятся графики и аналитика.</p>
-        <a href="#" class="btn btn-primary">Добавить первую трату</a>
+    <div class="dashboard-actions" style="display:flex; gap:12px; margin-bottom: 32px; flex-wrap: wrap;">
+        <a href="{% url 'transactions_list' %}" class="btn btn-primary">➕ Добавить транзакцию</a>
+        <a href="{% url 'categories_list' %}" class="btn btn-outline">📂 Категории</a>
+        <a href="{% url 'analytics' %}" class="btn btn-outline">📈 Аналитика</a>
+    </div>
+
+    <div class="form-card">
+        <h3>🕒 Последние 5 операций</h3>
+        {% if last_transactions %}
+            <table class="transactions-table" style="margin-top: 16px;">
+                <thead>
+                    <tr>
+                        <th>Дата</th>
+                        <th>Категория</th>
+                        <th>Сумма</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for t in last_transactions %}
+                        <tr>
+                            <td>{{ t.date|date:"d.m.Y" }}</td>
+                            <td>{{ t.category.icon }} {{ t.category.name }}</td>
+                            <td class="{% if t.is_income %}amount-income{% else %}amount-expense{% endif %}">
+                                {% if t.is_income %}+{% else %}−{% endif %}{{ t.amount }} ₽
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <div class="empty-state" style="margin-top: 16px;">
+                <div class="icon">📭</div>
+                <h3>Пока нет транзакций</h3>
+                <p>Добавь первую операцию — здесь появится история.</p>
+                <a href="{% url 'transactions_list' %}" class="btn btn-primary">Добавить</a>
+            </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}
