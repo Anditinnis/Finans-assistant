@@ -138,3 +138,4 @@ load_dotenv(BASE_DIR / '.env')
 
 API_URL = os.getenv('API_URL', 'http://127.0.0.1:8000')
 API_SECRET_KEY = os.getenv('API_SECRET_KEY', '')
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
