@@ -5,15 +5,24 @@
 
 {% block content %}
 <div class="container dashboard">
-    <div class="dashboard-header">
-        <h1>Привет, <span>{{ user.username }}</span> 👋</h1>
-        <p style="color: var(--text-muted);">Вот твой финансовый обзор</p>
+    <div class="dashboard-header" style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px;">
+        <div>
+            <h1>Привет, <span>{{ user.username }}</span> 👋</h1>
+            <p style="color: var(--text-muted);">Вот твой финансовый обзор</p>
+        </div>
+        
+        <!-- Блок статуса бота -->
+        <div class="bot-status 
+            {% if bot_status == 'Бот работает' %}bot-online
+            {% elif 'не отвечает' in bot_status %}bot-warning
+            {% else %}bot-offline{% endif %}">
+            🤖 VK-бот: {{ bot_status }}
+        </div>
     </div>
 
     <div class="stats-grid">
         <div class="stat-card">
             <div class="stat-label">Баланс</div>
-            <p>Статус VK-бота: <strong>{{ bot_status }}</strong></p>
             <div class="stat-value {% if balance >= 0 %}positive{% else %}negative{% endif %}">
                 {{ balance|floatformat:2 }} ₽
             </div>
