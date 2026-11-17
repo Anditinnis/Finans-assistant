@@ -198,7 +198,6 @@ def create_link_code(code, user_id, expires_at):
     connection.commit()
     connection.close()
 
-
 def link_vk_account(code, vk_id, current_time):
     """
     Ищет код в таблице Django (accounts_linkcode), чтобы бот и сайт работали с одной базой.
@@ -217,15 +216,25 @@ def link_vk_account(code, vk_id, current_time):
         connection.close()
         return "invalid_or_expired"
 
-    # Django хранит created_at как строку, парсим её
+    # Django хранит created_at как строку; приводим к aware-UTC
     try:
-        created_at = datetime.datetime.fromisoformat(link_code["created_at"].replace('Z', '+00:00'))
-    except Exception:
+        raw = link_code["created_at"]
+        if isinstance(raw, (int, float)):
+            # Unix timestamp
+            created_at = datetime.datetime.fromtimestamp(raw, tz=datetime.timezone.utc)
+        else:
+            created_at = datetime.datetime.fromisoformat(str(raw).replace('Z', '+00:00'))
+            # Если naive — считаем, что это UTC (так хранит Django в SQLite)
+            if created_at.tzinfo is None:
+                created_at = created_at.replace(tzinfo=datetime.timezone.utc)
+    except Exception as e:
+        print(f"Date parse error: {e}")
         connection.close()
         return "invalid_or_expired"
 
     # Проверяем, не истёк ли код (10 минут)
-    if datetime.datetime.now(datetime.timezone.utc) > created_at + datetime.timedelta(minutes=10):
+    now = datetime.datetime.now(datetime.timezone.utc)
+    if now > created_at + datetime.timedelta(minutes=10):
         cursor.execute("DELETE FROM accounts_linkcode WHERE code = ?", (code,))
         connection.commit()
         connection.close()
