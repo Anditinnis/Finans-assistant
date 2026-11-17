@@ -1,8 +1,8 @@
 #!/bin/bash
 
-echo "Запуск всех сервисов..."
+echo "=== Запуск всех сервисов ==="
 
-# 1. Django сайт на порту 8000
+# 1. Django сайт на порту 8000 (Uppcoder ожидает его здесь)
 pixi run -e web-django python manage.py runserver 0.0.0.0:8000 &
 
 # 2. FastAPI (API для бота) на порту 8001
