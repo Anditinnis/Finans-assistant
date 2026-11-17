@@ -197,15 +197,15 @@ def create_link_code(code, user_id, expires_at):
 
     connection.commit()
     connection.close()
-
 def link_vk_account(code, vk_id, current_time):
     """
-    Ищет код в таблице Django (accounts_linkcode), чтобы бот и сайт работали с одной базой.
+    Ищет код в таблице Django (accounts_linkcode) и прописывает vk_id
+    в accounts_profile — туда, куда смотрит сайт.
     """
     connection = get_connection()
     cursor = connection.cursor()
 
-    # Ищем код в таблице, которую создаёт Django
+    # Ищем код
     cursor.execute(
         "SELECT user_id, created_at FROM accounts_linkcode WHERE code = ?",
         (code,)
@@ -216,15 +216,13 @@ def link_vk_account(code, vk_id, current_time):
         connection.close()
         return "invalid_or_expired"
 
-    # Django хранит created_at как строку; приводим к aware-UTC
+    # Парсим created_at → aware UTC
     try:
         raw = link_code["created_at"]
         if isinstance(raw, (int, float)):
-            # Unix timestamp
             created_at = datetime.datetime.fromtimestamp(raw, tz=datetime.timezone.utc)
         else:
             created_at = datetime.datetime.fromisoformat(str(raw).replace('Z', '+00:00'))
-            # Если naive — считаем, что это UTC (так хранит Django в SQLite)
             if created_at.tzinfo is None:
                 created_at = created_at.replace(tzinfo=datetime.timezone.utc)
     except Exception as e:
@@ -232,7 +230,7 @@ def link_vk_account(code, vk_id, current_time):
         connection.close()
         return "invalid_or_expired"
 
-    # Проверяем, не истёк ли код (10 минут)
+    # Проверка срока (10 минут)
     now = datetime.datetime.now(datetime.timezone.utc)
     if now > created_at + datetime.timedelta(minutes=10):
         cursor.execute("DELETE FROM accounts_linkcode WHERE code = ?", (code,))
@@ -241,17 +239,23 @@ def link_vk_account(code, vk_id, current_time):
         return "invalid_or_expired"
 
     user_id = link_code["user_id"]
-        # Проверяем, не привязан ли уже этот VK к какому-либо аккаунту
-    cursor.execute("SELECT user_id FROM vk_links WHERE vk_id = ?", (vk_id,))
-    existing = cursor.fetchone()
-    if existing is not None:
+
+    # Этот VK уже привязан к какому-то профилю?
+    cursor.execute("SELECT id FROM accounts_profile WHERE vk_id = ?", (vk_id,))
+    if cursor.fetchone() is not None:
         connection.close()
-        # Если к тому же самому user_id — тоже считаем "уже привязан"
         return "already_linked"
+
+    # Профиль пользователя, который сгенерировал код
+    cursor.execute("SELECT id FROM accounts_profile WHERE user_id = ?", (user_id,))
+    profile = cursor.fetchone()
+    if profile is None:
+        connection.close()
+        return "invalid_or_expired"
 
     try:
         cursor.execute(
-            "INSERT INTO vk_links (vk_id, user_id) VALUES (?, ?)",
+            "UPDATE accounts_profile SET vk_id = ? WHERE user_id = ?",
             (vk_id, user_id)
         )
         cursor.execute("DELETE FROM accounts_linkcode WHERE code = ?", (code,))
@@ -263,13 +267,12 @@ def link_vk_account(code, vk_id, current_time):
         connection.close()
         return "already_linked"
 
-
 def get_user_id_by_vk(vk_id):
     connection = get_connection()
     cursor = connection.cursor()
 
     cursor.execute(
-        "SELECT user_id FROM vk_links WHERE vk_id = ?",
+        "SELECT user_id FROM accounts_profile WHERE vk_id = ?",
         (vk_id,)
     )
 
