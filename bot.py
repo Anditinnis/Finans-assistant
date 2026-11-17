@@ -202,7 +202,7 @@ while True:
                     send(vk_id, "✅ Аккаунт привязан!", keyboard=make_main_keyboard())
                 else:
                     try:
-                        err = resp.json().get('error', 'Ошибка')
+                        err = resp.json().get('detail', 'Ошибка')
                     except Exception:
                         err = 'Ошибка'
                     send(vk_id, f"❌ {err}", keyboard=make_main_keyboard())
