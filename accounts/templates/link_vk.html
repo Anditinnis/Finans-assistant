@@ -13,6 +13,9 @@
         {% if profile.vk_id %}
             <h2>Уже привязано ✅</h2>
             <p class="subtitle">Твой VK ID: <strong>{{ profile.vk_id }}</strong></p>
+            <a href="https://vk.me/club243085760" target="_blank" class="btn btn-outline" style="width:100%; margin-top: 12px; border-color: #0077FF; color: #0077FF;">
+                Перейти в чат с ботом
+            </a>
             <a href="{% url 'profile' %}" class="btn btn-outline" style="width:100%; margin-top: 20px;">
                 ← Вернуться в профиль
             </a>
@@ -30,6 +33,12 @@
                     /link {{ code }}
                 </code>
             </p>
+            
+            <!-- Кнопка перехода в чат с ботом -->
+            <a href="https://vk.me/club243085760" target="_blank" class="btn btn-primary" style="width:100%; margin-top: 20px; background: #0077FF; border-color: #0077FF; color: white;">
+                Открыть чат с ботом
+            </a>
+
             <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 16px;">
                 Код действует 10 минут.
             </p>
@@ -51,6 +60,9 @@
                     Получить код привязки
                 </button>
             </form>
+            <a href="https://vk.me/club243085760" target="_blank" class="btn btn-outline" style="width:100%; margin-top: 12px; border-color: #0077FF; color: #0077FF;">
+                Перейти в сообщество ВК
+            </a>
             <a href="{% url 'profile' %}" class="btn btn-ghost" style="width:100%; margin-top: 12px;">
                 ← Назад в профиль
             </a>
