@@ -1,6 +1,6 @@
 import sqlite3
 
-DATABASE_NAME = "transactions.db"
+DATABASE_NAME = "db.sqlite3"
 
 
 def get_connection():
