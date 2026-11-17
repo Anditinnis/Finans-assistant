@@ -195,7 +195,7 @@ while True:
 
             if low.startswith("/link "):
                 code = text[6:].strip()
-                resp = api_post("/api/link/", {"vk_id": vk_id, "code": code})
+                resp = api_post("/link-vk", {"vk_id": vk_id, "code": code})
                 if resp is None:
                     send(vk_id, "⚠️ Сервер недоступен.", keyboard=make_main_keyboard())
                 elif resp.status_code == 200:

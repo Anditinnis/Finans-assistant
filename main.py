@@ -55,12 +55,25 @@ class VKLinkRequest(BaseModel):
     vk_id: int = Field(gt=0)
 
 
+class VKActionRequest(BaseModel):
+    vk_id: int
+
+
+class VKAddRequest(BaseModel):
+    vk_id: int
+    amount: float
+    category: str
+    type: Literal["expense", "income"] = "expense"
+
+
 @app.get("/")
 def home():
     return {"message": "Financial Tracker API!"}
 
 
-# Финансовые операции
+# ========================
+# ОСНОВНЫЕ ЭНДПОИНТЫ
+# ========================
 
 @app.get("/transactions", dependencies=[Depends(verify_api_key)])
 def get_transactions_api(
@@ -68,7 +81,6 @@ def get_transactions_api(
     transaction_type: Literal["expense", "income"] | None = None
 ):
     transactions = get_transactions(user_id, transaction_type)
-
     return {"transactions": transactions}
 
 
@@ -88,7 +100,6 @@ def add_transaction_api(
         transaction.category,
         user_id
     )
-
     return {
         "message": "Операция добавлена",
         "id": transaction_id,
@@ -109,13 +120,8 @@ def update_transaction_api(
         transaction.amount,
         transaction.category
     )
-
     if not updated:
-        raise HTTPException(
-            status_code=404,
-            detail="Операция не найдена"
-        )
-
+        raise HTTPException(status_code=404, detail="Операция не найдена")
     return {"message": "Операция обновлена"}
 
 
@@ -125,65 +131,75 @@ def delete_transaction_api(
     user_id: int = Query(gt=0)
 ):
     transaction = delete_transaction(transaction_id, user_id)
-
     if transaction is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Операция не найдена"
-        )
-
-    return {
-        "message": "Операция удалена",
-        "transaction": transaction
-    }
+        raise HTTPException(status_code=404, detail="Операция не найдена")
+    return {"message": "Операция удалена", "transaction": transaction}
 
 
-# Привязка VK-аккаунта
+# ========================
+# ПРИВЯЗКА VK
+# ========================
 
 @app.post("/link-code", dependencies=[Depends(verify_api_key)])
 def create_link_code_api(user_id: int = Query(gt=0)):
     code = secrets.token_urlsafe(6)
     expires_at = int(time.time()) + 600
-
     create_link_code(code, user_id, expires_at)
-
-    return {
-        "code": code,
-        "expires_in": 600
-    }
+    return {"code": code, "expires_in": 600}
 
 
 @app.post("/link-vk", dependencies=[Depends(verify_api_key)])
 def link_vk_api(data: VKLinkRequest):
-    result = link_vk_account(
-        data.code,
-        data.vk_id,
-        int(time.time())
-    )
-
+    result = link_vk_account(data.code, data.vk_id, int(time.time()))
     if result == "invalid_or_expired":
-        raise HTTPException(
-            status_code=400,
-            detail="Код недействителен или истёк"
-        )
-
+        raise HTTPException(status_code=400, detail="Код недействителен или истёк")
     if result == "already_linked":
-        raise HTTPException(
-            status_code=409,
-            detail="Этот VK-аккаунт или аккаунт сайта уже привязан"
-        )
-
+        raise HTTPException(status_code=409, detail="Этот VK-аккаунт или аккаунт сайта уже привязан")
     return {"message": "VK-аккаунт успешно привязан"}
 
 
 @app.get("/users/by-vk/{vk_id}", dependencies=[Depends(verify_api_key)])
 def get_user_by_vk_api(vk_id: int):
     user_id = get_user_id_by_vk(vk_id)
-
     if user_id is None:
-        raise HTTPException(
-            status_code=404,
-            detail="VK-аккаунт не привязан"
-        )
-
+        raise HTTPException(status_code=404, detail="VK-аккаунт не привязан")
     return {"user_id": user_id}
+
+
+# ========================
+# ОБЁРТКИ ДЛЯ БОТА (пути, которые ожидает bot.py)
+# ========================
+
+@app.post("/api/link/", dependencies=[Depends(verify_api_key)])
+def api_link_wrapper(data: VKLinkRequest):
+    """Обёртка для /api/link/, которую вызывает бот."""
+    return link_vk_api(data)
+
+
+@app.post("/api/balance/", dependencies=[Depends(verify_api_key)])
+def api_balance_wrapper(data: VKActionRequest):
+    """Обёртка для /api/balance/, которую вызывает бот."""
+    user_id = get_user_id_by_vk(data.vk_id)
+    if user_id is None:
+        raise HTTPException(status_code=404, detail="VK-аккаунт не привязан")
+    return get_balance(user_id)
+
+
+@app.post("/api/add/", dependencies=[Depends(verify_api_key)])
+def api_add_wrapper(data: VKAddRequest):
+    """Обёртка для /api/add/, которую вызывает бот."""
+    user_id = get_user_id_by_vk(data.vk_id)
+    if user_id is None:
+        raise HTTPException(status_code=404, detail="VK-аккаунт не привязан")
+
+    transaction_id = add_transaction(
+        data.type,
+        data.amount,
+        data.category,
+        user_id
+    )
+    return {
+        "message": "Операция добавлена",
+        "id": transaction_id,
+        "user_id": user_id
+    }
