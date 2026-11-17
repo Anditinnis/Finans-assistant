@@ -101,134 +101,140 @@ def delete_history(vk_user_id, count=50):
 
 
 # ============================================================
-# ОБРАБОТКА
+# ОБРАБОТКА (Бесконечный цикл с обработкой ошибок)
 # ============================================================
-for event in longpoll.listen():
-    if event.type != VkBotEventType.MESSAGE_NEW:
-        continue
-        
-    # Отмечаем, что бот жив и обрабатывает сообщение
-    touch_heartbeat()
+while True:
+    try:
+        for event in longpoll.listen():
+            if event.type != VkBotEventType.MESSAGE_NEW:
+                continue
+                
+            # Отмечаем, что бот жив и обрабатывает сообщение
+            touch_heartbeat()
 
-    vk_id = event.object.message["from_id"]
-    text = event.object.message.get("text", "").strip()
-    print(f"[{vk_id}] {text}")
+            vk_id = event.object.message["from_id"]
+            text = event.object.message.get("text", "").strip()
+            print(f"[{vk_id}] {text}")
 
-    if not text:
-        continue
+            if not text:
+                continue
 
-    low = text.lower()
-    state = user_states.get(vk_id)
+            low = text.lower()
+            state = user_states.get(vk_id)
 
-    # ---------- Отмена в любом состоянии ----------
-    if low in ("⬅️ отмена", "/cancel", "отмена"):
-        user_states.pop(vk_id, None)
-        send(vk_id, "Ок, отменил.", keyboard=make_main_keyboard())
-        continue
+            # ---------- Отмена в любом состоянии ----------
+            if low in ("⬅️ отмена", "/cancel", "отмена"):
+                user_states.pop(vk_id, None)
+                send(vk_id, "Ок, отменил.", keyboard=make_main_keyboard())
+                continue
 
-    # ---------- Если ждём ввод траты ----------
-    if state == "awaiting_expense":
-        parts = text.split(maxsplit=1)
-        if len(parts) != 2:
-            send(vk_id, "❌ Формат: СУММА КАТЕГОРИЯ\nНапример: 500 еда", keyboard=make_cancel_inline())
-            continue
-        try:
-            amount = float(parts[0].replace(",", "."))
-        except ValueError:
-            send(vk_id, "❌ Сумма должна быть числом. Попробуй: 500 еда", keyboard=make_cancel_inline())
-            continue
-        category = parts[1].strip()
-        resp = api_post("/api/add/", {
-            "vk_id": vk_id,
-            "amount": amount,
-            "category": category,
-            "type": "expense"
-        })
-        user_states.pop(vk_id, None)
-        if resp is None:
-            send(vk_id, "⚠️ Сервер недоступен.", keyboard=make_main_keyboard())
-        elif resp.status_code == 200:
-            send(vk_id, f"✅ {amount:.2f} ₽ «{category}» добавлено.", keyboard=make_main_keyboard())
-        else:
-            send(vk_id, "❌ Сначала привяжи аккаунт: /link КОД", keyboard=make_main_keyboard())
-        continue
+            # ---------- Если ждём ввод траты ----------
+            if state == "awaiting_expense":
+                parts = text.split(maxsplit=1)
+                if len(parts) != 2:
+                    send(vk_id, "❌ Формат: СУММА КАТЕГОРИЯ\nНапример: 500 еда", keyboard=make_cancel_inline())
+                    continue
+                try:
+                    amount = float(parts[0].replace(",", "."))
+                except ValueError:
+                    send(vk_id, "❌ Сумма должна быть числом. Попробуй: 500 еда", keyboard=make_cancel_inline())
+                    continue
+                category = parts[1].strip()
+                resp = api_post("/api/add/", {
+                    "vk_id": vk_id,
+                    "amount": amount,
+                    "category": category,
+                    "type": "expense"
+                })
+                user_states.pop(vk_id, None)
+                if resp is None:
+                    send(vk_id, "⚠️ Сервер недоступен.", keyboard=make_main_keyboard())
+                elif resp.status_code == 200:
+                    send(vk_id, f"✅ {amount:.2f} ₽ «{category}» добавлено.", keyboard=make_main_keyboard())
+                else:
+                    send(vk_id, "❌ Сначала привяжи аккаунт: /link КОД", keyboard=make_main_keyboard())
+                continue
 
-    # ---------- /start и /help ----------
-    if low in ("/start", "/help", "помощь", "начать", "ℹ️ помощь"):
-        send(
-            vk_id,
-            "👋 Привет! Я бот для учёта бюджета.\n\n"
-            "Выбери действие на клавиатуре ниже 👇",
-            keyboard=make_main_keyboard()
-        )
-        continue
+            # ---------- /start и /help ----------
+            if low in ("/start", "/help", "помощь", "начать", "ℹ️ помощь"):
+                send(
+                    vk_id,
+                    "👋 Привет! Я бот для учёта бюджета.\n\n"
+                    "Выбери действие на клавиатуре ниже 👇",
+                    keyboard=make_main_keyboard()
+                )
+                continue
 
-    # ---------- Баланс ----------
-    if low in ("💰 баланс", "/balance", "баланс"):
-        resp = api_post("/api/balance/", {"vk_id": vk_id})
-        if resp is None:
-            send(vk_id, "⚠️ Сервер недоступен.", keyboard=make_main_keyboard())
-        elif resp.status_code == 200:
-            d = resp.json()
-            send(
-                vk_id,
-                f"💰 Баланс: {d['balance']:.2f} ₽\n"
-                f"📈 Доходы: {d['income']:.2f} ₽\n"
-                f"📉 Расходы: {d['expenses']:.2f} ₽",
-                keyboard=make_main_keyboard()
-            )
-        else:
-            send(vk_id, "🔗 Сначала привяжи аккаунт.", keyboard=make_main_keyboard())
-        continue
+            # ---------- Баланс ----------
+            if low in ("💰 баланс", "/balance", "баланс"):
+                resp = api_post("/api/balance/", {"vk_id": vk_id})
+                if resp is None:
+                    send(vk_id, "⚠️ Сервер недоступен.", keyboard=make_main_keyboard())
+                elif resp.status_code == 200:
+                    d = resp.json()
+                    send(
+                        vk_id,
+                        f"💰 Баланс: {d['balance']:.2f} ₽\n"
+                        f"📈 Доходы: {d['income']:.2f} ₽\n"
+                        f"📉 Расходы: {d['expenses']:.2f} ₽",
+                        keyboard=make_main_keyboard()
+                    )
+                else:
+                    send(vk_id, "🔗 Сначала привяжи аккаунт.", keyboard=make_main_keyboard())
+                continue
 
-    # ---------- Привязка ----------
-    if low in ("🔗 привязать вк", "/link", "привязать"):
-        send(
-            vk_id,
-            "🔗 Зайди на сайт → Профиль → Привязать ВК → получи код.\n"
-            "Потом отправь сюда: /link ТВОЙ_КОД",
-            keyboard=make_main_keyboard()
-        )
-        continue
+            # ---------- Привязка ----------
+            if low in ("🔗 привязать вк", "/link", "привязать"):
+                send(
+                    vk_id,
+                    "🔗 Зайди на сайт → Профиль → Привязать ВК → получи код.\n"
+                    "Потом отправь сюда: /link ТВОЙ_КОД",
+                    keyboard=make_main_keyboard()
+                )
+                continue
 
-    if low.startswith("/link "):
-        code = text[6:].strip()
-        resp = api_post("/api/link/", {"vk_id": vk_id, "code": code})
-        if resp is None:
-            send(vk_id, "⚠️ Сервер недоступен.", keyboard=make_main_keyboard())
-        elif resp.status_code == 200:
-            send(vk_id, "✅ Аккаунт привязан!", keyboard=make_main_keyboard())
-        else:
-            try:
-                err = resp.json().get('error', 'Ошибка')
-            except Exception:
-                err = 'Ошибка'
-            send(vk_id, f"❌ {err}", keyboard=make_main_keyboard())
-        continue
+            if low.startswith("/link "):
+                code = text[6:].strip()
+                resp = api_post("/api/link/", {"vk_id": vk_id, "code": code})
+                if resp is None:
+                    send(vk_id, "⚠️ Сервер недоступен.", keyboard=make_main_keyboard())
+                elif resp.status_code == 200:
+                    send(vk_id, "✅ Аккаунт привязан!", keyboard=make_main_keyboard())
+                else:
+                    try:
+                        err = resp.json().get('error', 'Ошибка')
+                    except Exception:
+                        err = 'Ошибка'
+                    send(vk_id, f"❌ {err}", keyboard=make_main_keyboard())
+                continue
 
-    # ---------- Добавить трату ----------
-    if low in ("➕ добавить трату", "/add", "добавить"):
-        user_states[vk_id] = "awaiting_expense"
-        send(
-            vk_id,
-            "➕ Напиши трату в формате:\n\n"
-            "   СУММА КАТЕГОРИЯ\n\n"
-            "Например: 500 еда",
-            keyboard=make_cancel_inline()
-        )
-        continue
+            # ---------- Добавить трату ----------
+            if low in ("➕ добавить трату", "/add", "добавить"):
+                user_states[vk_id] = "awaiting_expense"
+                send(
+                    vk_id,
+                    "➕ Напиши трату в формате:\n\n"
+                    "   СУММА КАТЕГОРИЯ\n\n"
+                    "Например: 500 еда",
+                    keyboard=make_cancel_inline()
+                )
+                continue
 
-    # ---------- Очистить чат ----------
-    if low in ("🧹 очистить чат", "/clear", "очистить"):
-        send(vk_id, "🧹 Удаляю сообщения...", keyboard=make_main_keyboard())
-        deleted = delete_history(vk_id, count=50)
-        if deleted > 0:
-            send(vk_id, f"✅ Удалено: {deleted}", keyboard=make_main_keyboard())
-        elif deleted == 0:
-            send(vk_id, "🤷 Нечего удалять.", keyboard=make_main_keyboard())
-        else:
-            send(vk_id, "⚠️ Не удалось удалить.", keyboard=make_main_keyboard())
-        continue
+            # ---------- Очистить чат ----------
+            if low in ("🧹 очистить чат", "/clear", "очистить"):
+                send(vk_id, "🧹 Удаляю сообщения...", keyboard=make_main_keyboard())
+                deleted = delete_history(vk_id, count=50)
+                if deleted > 0:
+                    send(vk_id, f"✅ Удалено: {deleted}", keyboard=make_main_keyboard())
+                elif deleted == 0:
+                    send(vk_id, "🤷 Нечего удалять.", keyboard=make_main_keyboard())
+                else:
+                    send(vk_id, "⚠️ Не удалось удалить.", keyboard=make_main_keyboard())
+                continue
 
-    # ---------- Неизвестная команда ----------
-    send(vk_id, "❓ Не понял. Используй кнопки ниже 👇", keyboard=make_main_keyboard())
+            # ---------- Неизвестная команда ----------
+            send(vk_id, "❓ Не понял. Используй кнопки ниже 👇", keyboard=make_main_keyboard())
+
+    except Exception as e:
+        print(f"Ошибка соединения с VK: {e}. Переподключение через 30 секунд...")
+        time.sleep(30)
