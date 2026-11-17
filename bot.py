@@ -25,7 +25,7 @@ longpoll = VkBotLongPoll(vk_session, GROUP_ID)
 
 print("VK-бот запущен!")
 
-# Состояния пользователей: {vk_id: "awaiting_expense"}
+# Состояния пользователей: {vk_id: "awaiting_expense" | "awaiting_link_code"}
 user_states = {}
 
 
@@ -40,6 +40,7 @@ def touch_heartbeat():
     except Exception:
         pass
 
+
 def api_post(path, data):
     try:
         return requests.post(
@@ -51,6 +52,24 @@ def api_post(path, data):
     except requests.RequestException as e:
         print(f"API error: {e}")
         return None
+
+
+def api_get(path):
+    try:
+        return requests.get(
+            f"{API_URL}{path}",
+            headers={"x-api-key": API_SECRET_KEY},
+            timeout=5
+        )
+    except requests.RequestException as e:
+        print(f"API error: {e}")
+        return None
+
+
+def is_vk_linked(vk_id):
+    """Возвращает True, если VK уже привязан к аккаунту на сайте."""
+    resp = api_get(f"/users/by-vk/{vk_id}")
+    return resp is not None and resp.status_code == 200
 
 
 def send(vk_user_id, text, keyboard=None):
@@ -100,6 +119,35 @@ def delete_history(vk_user_id, count=50):
         return -1
 
 
+def handle_link_result(vk_id, resp):
+    """Единая обработка ответа от /link-vk."""
+    if resp is None:
+        send(vk_id, "⚠️ Сервер недоступен.", keyboard=make_main_keyboard())
+        return
+    if resp.status_code == 200:
+        send(vk_id, "✅ Аккаунт привязан!", keyboard=make_main_keyboard())
+        return
+    if resp.status_code == 409:
+        send(
+            vk_id,
+            "ℹ️ Этот ВК уже привязан к аккаунту на сайте.\n"
+            "Если нужно привязать другой аккаунт — сначала отвяжите ВК в профиле на сайте.",
+            keyboard=make_main_keyboard()
+        )
+        return
+    try:
+        err = resp.json().get('detail', 'Ошибка')
+    except Exception:
+        err = 'Ошибка'
+    send(vk_id, f"❌ {err}", keyboard=make_main_keyboard())
+
+
+ALREADY_LINKED_TEXT = (
+    "ℹ️ Ты уже привязан к аккаунту на сайте.\n"
+    "Если хочешь привязать другой аккаунт — сначала отвяжи ВК в профиле на сайте."
+)
+
+
 # ============================================================
 # ОБРАБОТКА (Бесконечный цикл с обработкой ошибок)
 # ============================================================
@@ -108,7 +156,7 @@ while True:
         for event in longpoll.listen():
             if event.type != VkBotEventType.MESSAGE_NEW:
                 continue
-                
+
             # Отмечаем, что бот жив и обрабатывает сообщение
             touch_heartbeat()
 
@@ -155,6 +203,14 @@ while True:
                     send(vk_id, "❌ Сначала привяжи аккаунт: /link КОД", keyboard=make_main_keyboard())
                 continue
 
+            # ---------- Если ждём код привязки ----------
+            if state == "awaiting_link_code":
+                code = text.strip()
+                resp = api_post("/link-vk", {"vk_id": vk_id, "code": code})
+                user_states.pop(vk_id, None)
+                handle_link_result(vk_id, resp)
+                continue
+
             # ---------- /start и /help ----------
             if low in ("/start", "/help", "помощь", "начать", "ℹ️ помощь"):
                 send(
@@ -183,37 +239,31 @@ while True:
                     send(vk_id, "🔗 Сначала привяжи аккаунт.", keyboard=make_main_keyboard())
                 continue
 
-            # ---------- Привязка ----------
+            # ---------- Привязка: кнопка ----------
             if low in ("🔗 привязать вк", "/link", "привязать"):
+                if is_vk_linked(vk_id):
+                    send(vk_id, ALREADY_LINKED_TEXT, keyboard=make_main_keyboard())
+                    continue
+
+                user_states[vk_id] = "awaiting_link_code"
                 send(
                     vk_id,
                     "🔗 Зайди на сайт → Профиль → Привязать ВК → получи код.\n"
-                    "Потом отправь сюда: /link ТВОЙ_КОД",
-                    keyboard=make_main_keyboard()
+                    "Потом отправь код сюда одним сообщением (без /link).",
+                    keyboard=make_cancel_inline()
                 )
                 continue
 
+            # ---------- Привязка: /link КОД ----------
             if low.startswith("/link "):
+                if is_vk_linked(vk_id):
+                    send(vk_id, ALREADY_LINKED_TEXT, keyboard=make_main_keyboard())
+                    continue
+
                 code = text[6:].strip()
                 resp = api_post("/link-vk", {"vk_id": vk_id, "code": code})
-                if resp is None:
-                    send(vk_id, "⚠️ Сервер недоступен.", keyboard=make_main_keyboard())
-                elif resp.status_code == 200:
-                    send(vk_id, "✅ Аккаунт привязан!", keyboard=make_main_keyboard())
-                else:
-                    try:
-                        err = resp.json().get('detail', 'Ошибка')
-                    except Exception:
-                        err = 'Ошибка'
-                    send( vk_id,
-                "ℹ️ Этот ВК уже привязан к аккаунту на сайте.\n"
-                "Если нужно привязать другой аккаунт — сначала отвяжите ВК в профиле на сайте.",
-                keyboard=make_main_keyboard()
-                )
-            else:
-                send(vk_id, f"❌ {err}", keyboard=make_main_keyboard())
+                handle_link_result(vk_id, resp)
                 continue
-
 
             # ---------- Добавить трату ----------
             if low in ("➕ добавить трату", "/add", "добавить"):
