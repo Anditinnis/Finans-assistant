@@ -1,3 +1,5 @@
+import os
+import time
 import requests
 from decimal import Decimal
 
@@ -10,6 +12,24 @@ from django.utils import timezone
 from .forms import RegisterForm
 from .models import Profile, LinkCode
 from finance.models import Transaction
+
+
+def get_bot_status():
+    """Проверяет, обновлялся ли файл bot_heartbeat.txt менее 2 минут назад."""
+    file_path = os.path.join(settings.BASE_DIR, 'bot_heartbeat.txt')
+    
+    if not os.path.exists(file_path):
+        return "Бот не запускался"
+    
+    try:
+        last_time = os.path.getmtime(file_path)
+        # Если файл обновлялся менее 120 секунд назад (2 минуты)
+        if time.time() - last_time < 120:
+            return "Бот работает"
+        else:
+            return "Бот не отвечает (нет активности)"
+    except Exception:
+        return "Ошибка проверки статуса"
 
 
 def register(request):
@@ -51,12 +71,16 @@ def dashboard(request):
     month_expense = month_totals['expense'] or Decimal('0')
     balance = (all_totals['income'] or Decimal('0')) - (all_totals['expense'] or Decimal('0'))
 
+    # Получаем статус бота
+    bot_status = get_bot_status()
+
     return render(request, 'dashboard.html', {
         'balance': balance,
         'month_income': month_income,
         'month_expense': month_expense,
         'transactions_count': qs.count(),
         'last_transactions': qs[:5],
+        'bot_status': bot_status,  # <-- Передаем статус в шаблон
     })
 
 

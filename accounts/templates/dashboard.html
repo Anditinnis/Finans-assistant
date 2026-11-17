@@ -13,6 +13,7 @@
     <div class="stats-grid">
         <div class="stat-card">
             <div class="stat-label">Баланс</div>
+            <p>Статус VK-бота: <strong>{{ bot_status }}</strong></p>
             <div class="stat-value {% if balance >= 0 %}positive{% else %}negative{% endif %}">
                 {{ balance|floatformat:2 }} ₽
             </div>

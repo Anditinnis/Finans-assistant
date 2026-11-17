@@ -1,6 +1,7 @@
 import os
 import vk_api
 import requests
+import time
 
 from vk_api.bot_longpoll import VkBotLongPoll, VkBotEventType
 from vk_api.keyboard import VkKeyboard, VkKeyboardColor
@@ -31,6 +32,14 @@ user_states = {}
 # ============================================================
 # УТИЛИТЫ
 # ============================================================
+def touch_heartbeat():
+    """Обновляет файл, чтобы сайт знал, что бот жив."""
+    try:
+        with open('bot_heartbeat.txt', 'w') as f:
+            f.write(str(time.time()))
+    except Exception:
+        pass
+
 def api_post(path, data):
     try:
         return requests.post(
@@ -97,6 +106,9 @@ def delete_history(vk_user_id, count=50):
 for event in longpoll.listen():
     if event.type != VkBotEventType.MESSAGE_NEW:
         continue
+        
+    # Отмечаем, что бот жив и обрабатывает сообщение
+    touch_heartbeat()
 
     vk_id = event.object.message["from_id"]
     text = event.object.message.get("text", "").strip()
