@@ -205,8 +205,15 @@ while True:
                         err = resp.json().get('detail', 'Ошибка')
                     except Exception:
                         err = 'Ошибка'
-                    send(vk_id, f"❌ {err}", keyboard=make_main_keyboard())
+                    send( vk_id,
+                "ℹ️ Этот ВК уже привязан к аккаунту на сайте.\n"
+                "Если нужно привязать другой аккаунт — сначала отвяжите ВК в профиле на сайте.",
+                keyboard=make_main_keyboard()
+                )
+            else:
+                send(vk_id, f"❌ {err}", keyboard=make_main_keyboard())
                 continue
+
 
             # ---------- Добавить трату ----------
             if low in ("➕ добавить трату", "/add", "добавить"):
