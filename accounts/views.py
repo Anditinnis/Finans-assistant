@@ -1,5 +1,6 @@
 import os
 import time
+import sqlite3
 import requests
 from decimal import Decimal
 
@@ -71,7 +72,6 @@ def dashboard(request):
     month_expense = month_totals['expense'] or Decimal('0')
     balance = (all_totals['income'] or Decimal('0')) - (all_totals['expense'] or Decimal('0'))
 
-    # Получаем статус бота
     bot_status = get_bot_status()
 
     return render(request, 'dashboard.html', {
@@ -80,7 +80,7 @@ def dashboard(request):
         'month_expense': month_expense,
         'transactions_count': qs.count(),
         'last_transactions': qs[:5],
-        'bot_status': bot_status,  # <-- Передаем статус в шаблон
+        'bot_status': bot_status,
     })
 
 
@@ -102,3 +102,30 @@ def link_vk_page(request):
         'error': error,
         'profile': profile,
     })
+
+
+@login_required
+def unlink_vk(request):
+    """Отвязывает VK-аккаунт от пользователя сайта и удаляет запись из базы бота."""
+    if request.method == 'POST':
+        profile, _ = Profile.objects.get_or_create(user=request.user)
+        if profile.vk_id:
+            vk_id = profile.vk_id
+            
+            # 1. Удаляем привязку на сайте (Django)
+            profile.vk_id = None
+            profile.save()
+
+            # 2. Удаляем привязку в базе бота (SQLite)
+            db_path = os.path.join(settings.BASE_DIR, 'db.sqlite3')
+            try:
+                conn = sqlite3.connect(db_path)
+                cursor = conn.cursor()
+                cursor.execute("DELETE FROM vk_links WHERE vk_id = ?", (vk_id,))
+                conn.commit()
+                conn.close()
+            except Exception as e:
+                print(f"Ошибка при удалении из vk_links: {e}")
+
+        return redirect('profile')
+    return redirect('profile')
