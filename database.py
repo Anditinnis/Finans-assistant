@@ -241,16 +241,19 @@ def link_vk_account(code, vk_id, current_time):
         return "invalid_or_expired"
 
     user_id = link_code["user_id"]
+        # Проверяем, не привязан ли уже этот VK к какому-либо аккаунту
+    cursor.execute("SELECT user_id FROM vk_links WHERE vk_id = ?", (vk_id,))
+    existing = cursor.fetchone()
+    if existing is not None:
+        connection.close()
+        # Если к тому же самому user_id — тоже считаем "уже привязан"
+        return "already_linked"
 
     try:
-        # Удаляем старую привязку, если есть
-        cursor.execute("DELETE FROM vk_links WHERE vk_id = ?", (vk_id,))
-        # Создаём новую
         cursor.execute(
             "INSERT INTO vk_links (vk_id, user_id) VALUES (?, ?)",
             (vk_id, user_id)
         )
-        # Удаляем использованный код
         cursor.execute("DELETE FROM accounts_linkcode WHERE code = ?", (code,))
         connection.commit()
         connection.close()
