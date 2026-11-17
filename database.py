@@ -1,4 +1,5 @@
 import sqlite3
+import datetime
 
 DATABASE_NAME = "db.sqlite3"
 
@@ -32,7 +33,7 @@ def create_table():
             ADD COLUMN user_id INTEGER NOT NULL DEFAULT 1
         """)
 
-    # Таблица временных кодов привязки
+    # Таблица временных кодов привязки (для совместимости)
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS link_codes (
             code TEXT PRIMARY KEY,
@@ -199,29 +200,33 @@ def create_link_code(code, user_id, expires_at):
 
 
 def link_vk_account(code, vk_id, current_time):
+    """
+    Ищет код в таблице Django (accounts_linkcode), чтобы бот и сайт работали с одной базой.
+    """
     connection = get_connection()
     cursor = connection.cursor()
 
+    # Ищем код в таблице, которую создаёт Django
     cursor.execute(
-        """
-        SELECT user_id, expires_at
-        FROM link_codes
-        WHERE code = ?
-        """,
+        "SELECT user_id, created_at FROM accounts_linkcode WHERE code = ?",
         (code,)
     )
-
     link_code = cursor.fetchone()
 
     if link_code is None:
         connection.close()
         return "invalid_or_expired"
 
-    if link_code["expires_at"] <= current_time:
-        cursor.execute(
-            "DELETE FROM link_codes WHERE code = ?",
-            (code,)
-        )
+    # Django хранит created_at как строку, парсим её
+    try:
+        created_at = datetime.datetime.fromisoformat(link_code["created_at"].replace('Z', '+00:00'))
+    except Exception:
+        connection.close()
+        return "invalid_or_expired"
+
+    # Проверяем, не истёк ли код (10 минут)
+    if datetime.datetime.now(datetime.timezone.utc) > created_at + datetime.timedelta(minutes=10):
+        cursor.execute("DELETE FROM accounts_linkcode WHERE code = ?", (code,))
         connection.commit()
         connection.close()
         return "invalid_or_expired"
@@ -229,23 +234,18 @@ def link_vk_account(code, vk_id, current_time):
     user_id = link_code["user_id"]
 
     try:
+        # Удаляем старую привязку, если есть
+        cursor.execute("DELETE FROM vk_links WHERE vk_id = ?", (vk_id,))
+        # Создаём новую
         cursor.execute(
-            """
-            INSERT INTO vk_links (vk_id, user_id)
-            VALUES (?, ?)
-            """,
+            "INSERT INTO vk_links (vk_id, user_id) VALUES (?, ?)",
             (vk_id, user_id)
         )
-
-        cursor.execute(
-            "DELETE FROM link_codes WHERE code = ?",
-            (code,)
-        )
-
+        # Удаляем использованный код
+        cursor.execute("DELETE FROM accounts_linkcode WHERE code = ?", (code,))
         connection.commit()
         connection.close()
         return "linked"
-
     except sqlite3.IntegrityError:
         connection.rollback()
         connection.close()
