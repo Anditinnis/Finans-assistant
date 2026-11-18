@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
 from datetime import timedelta
+import secrets
 
 
 class Profile(models.Model):
@@ -20,6 +21,12 @@ class LinkCode(models.Model):
 
     def is_expired(self):
         return timezone.now() > self.created_at + timedelta(minutes=10)
+
+    @classmethod
+    def generate_for(cls, user):
+        cls.objects.filter(user=user).delete()
+        code = secrets.token_urlsafe(6)
+        return cls.objects.create(user=user, code=code)
 
     def __str__(self):
         return f'{self.code} для {self.user.username}'

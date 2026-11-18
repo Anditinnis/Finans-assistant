@@ -13,7 +13,6 @@ urlpatterns = [
     path('accounts/', include('accounts.urls')),
     path('finance/', include('finance.urls')),
 
-    # API для бота (Django)
     path('api/add/', finance_api.api_add_transaction, name='api_add'),
     path('api/balance/', finance_api.api_get_balance, name='api_balance'),
     path('api/link/', finance_api.api_link_vk, name='api_link'),

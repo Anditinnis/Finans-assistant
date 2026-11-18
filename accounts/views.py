@@ -1,16 +1,18 @@
 import os
 import time
 import sqlite3
+import secrets
 import requests
 from decimal import Decimal
 
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
+from django.contrib import messages
 from django.conf import settings
 from django.db.models import Sum, Q
 from django.utils import timezone
 
-from .forms import RegisterForm
+from .forms import RegisterForm, ProfileForm
 from .models import Profile, LinkCode
 from finance.models import Transaction
 
@@ -18,17 +20,13 @@ from finance.models import Transaction
 def get_bot_status():
     """Проверяет, обновлялся ли файл bot_heartbeat.txt менее 2 минут назад."""
     file_path = os.path.join(settings.BASE_DIR, 'bot_heartbeat.txt')
-    
     if not os.path.exists(file_path):
         return "Бот не запускался"
-    
     try:
         last_time = os.path.getmtime(file_path)
-        # Если файл обновлялся менее 120 секунд назад (2 минуты)
         if time.time() - last_time < 120:
             return "Бот работает"
-        else:
-            return "Бот не отвечает (нет активности)"
+        return "Бот не отвечает (нет активности)"
     except Exception:
         return "Ошибка проверки статуса"
 
@@ -37,10 +35,8 @@ def register(request):
     if request.method == 'POST':
         form = RegisterForm(request.POST)
         if form.is_valid():
-            user = form.save(commit=False)
-            user.set_password(form.cleaned_data['password'])
-            user.save()
-            Profile.objects.create(user=user)
+            user = form.save()
+            Profile.objects.get_or_create(user=user)
             return redirect('login')
     else:
         form = RegisterForm()
@@ -106,17 +102,13 @@ def link_vk_page(request):
 
 @login_required
 def unlink_vk(request):
-    """Отвязывает VK-аккаунт от пользователя сайта и удаляет запись из базы бота."""
     if request.method == 'POST':
         profile, _ = Profile.objects.get_or_create(user=request.user)
         if profile.vk_id:
             vk_id = profile.vk_id
-            
-            # 1. Удаляем привязку на сайте (Django)
             profile.vk_id = None
             profile.save()
 
-            # 2. Удаляем привязку в базе бота (SQLite)
             db_path = os.path.join(settings.BASE_DIR, 'db.sqlite3')
             try:
                 conn = sqlite3.connect(db_path)
@@ -133,7 +125,7 @@ def unlink_vk(request):
 
 @login_required
 def profile_edit(request):
-    profile = request.user.profile
+    profile, _ = Profile.objects.get_or_create(user=request.user)
     if request.method == 'POST':
         form = ProfileForm(request.POST, request.FILES, instance=profile)
         if form.is_valid():
