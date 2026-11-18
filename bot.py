@@ -2,7 +2,6 @@ import os
 import vk_api
 import requests
 import time
-import io
 
 from vk_api.bot_longpoll import VkBotLongPoll, VkBotEventType
 from vk_api.keyboard import VkKeyboard, VkKeyboardColor
@@ -27,7 +26,6 @@ longpoll = VkBotLongPoll(vk_session, GROUP_ID)
 
 print("VK-бот запущен!")
 
-# Состояния пользователей: {vk_id: "awaiting_expense" | "awaiting_link_code"}
 user_states = {}
 
 
@@ -35,7 +33,6 @@ user_states = {}
 # УТИЛИТЫ
 # ============================================================
 def touch_heartbeat():
-    """Обновляет файл, чтобы сайт знал, что бот жив."""
     try:
         with open('bot_heartbeat.txt', 'w') as f:
             f.write(str(time.time()))
@@ -70,9 +67,22 @@ def api_get(path, params=None):
 
 
 def is_vk_linked(vk_id):
-    """Возвращает True, если VK уже привязан к аккаунту на сайте."""
     resp = api_get(f"/api/users/by-vk/{vk_id}/")
     return resp is not None and resp.status_code == 200
+
+
+def get_vk_avatar_url(vk_id):
+    """Получает ссылку на аватар пользователя ВК."""
+    try:
+        user_info = vk.method("users.get", {
+            "user_ids": vk_id,
+            "fields": "photo_200"
+        })
+        if user_info and user_info[0].get('photo_200'):
+            return user_info[0]['photo_200']
+    except Exception as e:
+        print(f"VK avatar error: {e}")
+    return None
 
 
 def send(vk_user_id, text, keyboard=None, attachment=None):
@@ -107,7 +117,6 @@ def make_main_keyboard():
 
 
 def make_cancel_inline():
-    """Inline-кнопка отмены, привязанная к сообщению."""
     kb = VkKeyboard(inline=True)
     kb.add_button("⬅️ Отмена", color=VkKeyboardColor.SECONDARY)
     return kb
@@ -128,12 +137,11 @@ def delete_history(vk_user_id, count=50):
 
 
 def handle_link_result(vk_id, resp):
-    """Единая обработка ответа от /api/link/."""
     if resp is None:
         send(vk_id, "⚠️ Сервер недоступен.", keyboard=make_main_keyboard())
         return
     if resp.status_code == 200:
-        send(vk_id, "✅ Аккаунт привязан!", keyboard=make_main_keyboard())
+        send(vk_id, "✅ Аккаунт привязан! Аватар загружен из ВК.", keyboard=make_main_keyboard())
         return
     if resp.status_code == 409:
         send(
@@ -157,89 +165,7 @@ ALREADY_LINKED_TEXT = (
 
 
 # ============================================================
-# ГРАФИК
-# ============================================================
-def build_expense_chart(vk_id):
-    """
-    Строит PNG-график расходов по категориям через matplotlib.
-    Возвращает путь к файлу или None.
-    """
-    try:
-        import matplotlib
-        matplotlib.use('Agg')
-        import matplotlib.pyplot as plt
-    except Exception as e:
-        print(f"matplotlib not available: {e}")
-        return None
-
-    resp = api_get("/api/transactions/", params={"vk_id": vk_id})
-    if resp is None or resp.status_code != 200:
-        print(f"transactions API: {resp.status_code if resp else 'None'}")
-        return None
-
-    data = resp.json().get("transactions", [])
-    by_cat = {}
-    for t in data:
-        if t.get("type") == "expense":
-            cat = t.get("category") or "Прочее"
-            by_cat[cat] = by_cat.get(cat, 0) + float(t.get("amount", 0))
-
-    if not by_cat:
-        return None
-
-    labels = list(by_cat.keys())
-    sizes = list(by_cat.values())
-
-    fig, ax = plt.subplots(figsize=(6, 4), dpi=120)
-    colors = ['#6366f1', '#8b5cf6', '#ec4899', '#06b6d4', '#10b981',
-              '#f59e0b', '#ef4444', '#14b8a6', '#a855f7']
-    ax.pie(
-        sizes,
-        labels=labels,
-        autopct='%1.1f%%',
-        startangle=90,
-        colors=colors[:len(labels)],
-        textprops={'fontsize': 10}
-    )
-    ax.set_title("Расходы по категориям", fontsize=13, fontweight='bold')
-    path = f"/tmp/chart_{vk_id}_{int(time.time())}.png"
-    fig.savefig(path, bbox_inches='tight', facecolor='white')
-    plt.close(fig)
-    return path
-
-
-def send_chart(vk_id):
-    path = build_expense_chart(vk_id)
-    if not path:
-        send(vk_id, "📭 Нет расходов для графика. Добавь траты через «➕ Добавить трату».",
-             keyboard=make_main_keyboard())
-        return
-    try:
-        upload_url = vk.photos.getMessagesUploadServer(peer_id=vk_id)["upload_url"]
-        with open(path, "rb") as f:
-            files = {"photo": ("chart.png", f, "image/png")}
-            upload_resp = requests.post(upload_url, files=files, timeout=15).json()
-        saved = vk.photos.saveMessagesPhoto(
-            photo=upload_resp["photo"],
-            server=upload_resp["server"],
-            hash=upload_resp["hash"]
-        )[0]
-        attachment = f"photo{saved['owner_id']}_{saved['id']}"
-        send(vk_id, "📊 Твои расходы по категориям:", attachment=attachment,
-             keyboard=make_main_keyboard())
-    except Exception as e:
-        print(f"Chart upload error: {e}")
-        send(vk_id, "⚠️ Не удалось отправить график. Попробуй позже.",
-             keyboard=make_main_keyboard())
-    finally:
-        try:
-            os.remove(path)
-        except Exception:
-            pass
-
-
-# ============================================================
-# ОБРАБОТКА (Бесконечный цикл с обработкой ошибок)
+# ОБРАБОТКА
 # ============================================================
 while True:
     try:
@@ -299,7 +225,12 @@ while True:
             # ---------- Ждём код привязки ----------
             if state == "awaiting_link_code":
                 code = text.strip()
-                resp = api_post("/api/link/", {"vk_id": vk_id, "code": code})
+                avatar_url = get_vk_avatar_url(vk_id)
+                resp = api_post("/api/link/", {
+                    "vk_id": vk_id,
+                    "code": code,
+                    "avatar_url": avatar_url
+                })
                 user_states.pop(vk_id, None)
                 handle_link_result(vk_id, resp)
                 continue
@@ -338,8 +269,64 @@ while True:
                 if not is_vk_linked(vk_id):
                     send(vk_id, "🔗 Сначала привяжи аккаунт.", keyboard=make_main_keyboard())
                     continue
-                send(vk_id, "📊 Строю график...", keyboard=make_main_keyboard())
-                send_chart(vk_id)
+                try:
+                    import matplotlib
+                    matplotlib.use('Agg')
+                    import matplotlib.pyplot as plt
+                except Exception as e:
+                    print(f"matplotlib not available: {e}")
+                    send(vk_id, "⚠️ Графики временно недоступны.", keyboard=make_main_keyboard())
+                    continue
+
+                resp = api_get("/api/transactions/", params={"vk_id": vk_id})
+                if resp is None or resp.status_code != 200:
+                    send(vk_id, "⚠️ Не удалось получить данные.", keyboard=make_main_keyboard())
+                    continue
+
+                data = resp.json().get("transactions", [])
+                by_cat = {}
+                for t in data:
+                    if t.get("type") == "expense":
+                        cat = t.get("category") or "Прочее"
+                        by_cat[cat] = by_cat.get(cat, 0) + float(t.get("amount", 0))
+
+                if not by_cat:
+                    send(vk_id, "📭 Нет расходов для графика.", keyboard=make_main_keyboard())
+                    continue
+
+                labels = list(by_cat.keys())
+                sizes = list(by_cat.values())
+                fig, ax = plt.subplots(figsize=(6, 4), dpi=120)
+                colors = ['#6366f1', '#8b5cf6', '#ec4899', '#06b6d4', '#10b981',
+                          '#f59e0b', '#ef4444', '#14b8a6', '#a855f7']
+                ax.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=90,
+                       colors=colors[:len(labels)], textprops={'fontsize': 10})
+                ax.set_title("Расходы по категориям", fontsize=13, fontweight='bold')
+                path = f"/tmp/chart_{vk_id}_{int(time.time())}.png"
+                fig.savefig(path, bbox_inches='tight', facecolor='white')
+                plt.close(fig)
+
+                try:
+                    upload_url = vk.photos.getMessagesUploadServer(peer_id=vk_id)["upload_url"]
+                    with open(path, "rb") as f:
+                        files = {"photo": ("chart.png", f, "image/png")}
+                        upload_resp = requests.post(upload_url, files=files, timeout=15).json()
+                    saved = vk.photos.saveMessagesPhoto(
+                        photo=upload_resp["photo"],
+                        server=upload_resp["server"],
+                        hash=upload_resp["hash"]
+                    )[0]
+                    attachment = f"photo{saved['owner_id']}_{saved['id']}"
+                    send(vk_id, "📊 Твои расходы по категориям:", attachment=attachment,
+                         keyboard=make_main_keyboard())
+                except Exception as e:
+                    print(f"Chart upload error: {e}")
+                    send(vk_id, "⚠️ Не удалось отправить график.", keyboard=make_main_keyboard())
+                finally:
+                    try:
+                        os.remove(path)
+                    except Exception:
+                        pass
                 continue
 
             # ---------- Сайт ----------
@@ -372,7 +359,12 @@ while True:
                     send(vk_id, ALREADY_LINKED_TEXT, keyboard=make_main_keyboard())
                     continue
                 code = text[6:].strip()
-                resp = api_post("/api/link/", {"vk_id": vk_id, "code": code})
+                avatar_url = get_vk_avatar_url(vk_id)
+                resp = api_post("/api/link/", {
+                    "vk_id": vk_id,
+                    "code": code,
+                    "avatar_url": avatar_url
+                })
                 handle_link_result(vk_id, resp)
                 continue
 

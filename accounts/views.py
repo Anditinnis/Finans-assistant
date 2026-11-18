@@ -1,8 +1,6 @@
 import os
 import time
 import sqlite3
-import secrets
-import requests
 from decimal import Decimal
 
 from django.shortcuts import render, redirect
@@ -18,7 +16,6 @@ from finance.models import Transaction
 
 
 def get_bot_status():
-    """Проверяет, обновлялся ли файл bot_heartbeat.txt менее 2 минут назад."""
     file_path = os.path.join(settings.BASE_DIR, 'bot_heartbeat.txt')
     if not os.path.exists(file_path):
         return "Бот не запускался"
@@ -53,7 +50,6 @@ def home_view(request):
 def dashboard(request):
     qs = Transaction.objects.filter(user=request.user).select_related('category')
     today = timezone.localdate()
-
     month_qs = qs.filter(date__year=today.year, date__month=today.month)
     month_totals = month_qs.aggregate(
         income=Sum('amount', filter=Q(category__type='income')),
@@ -63,13 +59,10 @@ def dashboard(request):
         income=Sum('amount', filter=Q(category__type='income')),
         expense=Sum('amount', filter=Q(category__type='expense')),
     )
-
     month_income = month_totals['income'] or Decimal('0')
     month_expense = month_totals['expense'] or Decimal('0')
     balance = (all_totals['income'] or Decimal('0')) - (all_totals['expense'] or Decimal('0'))
-
     bot_status = get_bot_status()
-
     return render(request, 'dashboard.html', {
         'balance': balance,
         'month_income': month_income,
@@ -85,14 +78,12 @@ def link_vk_page(request):
     profile, _ = Profile.objects.get_or_create(user=request.user)
     code = None
     error = None
-
     if request.method == 'POST':
         if profile.vk_id:
             error = 'VK уже привязан'
         else:
             link = LinkCode.generate_for(request.user)
             code = link.code
-
     return render(request, 'link_vk.html', {
         'code': code,
         'error': error,
@@ -108,7 +99,6 @@ def unlink_vk(request):
             vk_id = profile.vk_id
             profile.vk_id = None
             profile.save()
-
             db_path = os.path.join(settings.BASE_DIR, 'db.sqlite3')
             try:
                 conn = sqlite3.connect(db_path)
@@ -118,7 +108,6 @@ def unlink_vk(request):
                 conn.close()
             except Exception as e:
                 print(f"Ошибка при удалении из vk_links: {e}")
-
         return redirect('profile')
     return redirect('profile')
 

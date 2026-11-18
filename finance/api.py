@@ -1,10 +1,12 @@
 import json
 import os
+import requests
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from django.utils import timezone
 from django.db.models import Sum, Q
+from django.core.files.base import ContentFile
 from .models import Transaction, Category
 from accounts.models import Profile, LinkCode
 
@@ -14,6 +16,21 @@ API_SECRET_KEY = os.getenv("API_SECRET_KEY", "super-secret-key-change-me")
 
 def check_key(request):
     return request.headers.get("x-api-key") == API_SECRET_KEY
+
+
+def download_vk_avatar(profile, avatar_url):
+    """Скачивает аватар из VK и сохраняет в профиль."""
+    if not avatar_url:
+        return
+    try:
+        resp = requests.get(avatar_url, timeout=10)
+        resp.raise_for_status()
+        file_name = f"vk_{profile.vk_id}.jpg"
+        profile.avatar.save(file_name, ContentFile(resp.content), save=False)
+        profile.save()
+        print(f"Аватар из VK сохранён: {file_name}")
+    except Exception as e:
+        print(f"Не удалось загрузить аватар из VK: {e}")
 
 
 @csrf_exempt
@@ -107,12 +124,19 @@ def api_link_vk(request):
         data = json.loads(request.body)
         vk_id = data.get("vk_id")
         code = data.get("code")
+        avatar_url = data.get("avatar_url")
+
         link = LinkCode.objects.filter(code=code).first()
         if not link or link.is_expired():
             return JsonResponse({"error": "Код недействителен или истёк"}, status=400)
+
         profile, _ = Profile.objects.get_or_create(user=link.user)
         profile.vk_id = vk_id
         profile.save()
+
+        if avatar_url:
+            download_vk_avatar(profile, avatar_url)
+
         link.delete()
         return JsonResponse({"status": "ok", "message": "Привязано"})
     except Exception as e:
