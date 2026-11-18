@@ -9,3 +9,4 @@ vk-api
 fastapi
 uvicorn
 pydantic
+matplotlib

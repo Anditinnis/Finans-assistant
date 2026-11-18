@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Редактирование профиля{% endblock %}
+{% block content %}
+<div class="container dashboard">
+    <div class="dashboard-header">
+        <h1>Редактирование <span>профиля</span></h1>
+    </div>
+    <div class="form-card" style="max-width: 600px;">
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="form-group">
+                <label>Аватар</label>
+                {% if user.profile.avatar %}
+                    <img src="{{ user.profile.avatar.url }}" alt="avatar"
+                         style="width:80px;height:80px;border-radius:50%;object-fit:cover;display:block;margin-bottom:8px;">
+                {% endif %}
+                {{ form.avatar }}
+            </div>
+            <div class="form-group"><label>Email</label>{{ form.email }}</div>
+            <div class="form-group"><label>Имя</label>{{ form.first_name }}</div>
+            <div class="form-group"><label>Фамилия</label>{{ form.last_name }}</div>
+            <button type="submit" class="btn btn-primary" style="width:100%;">Сохранить</button>
+            <a href="{% url 'profile' %}" class="btn btn-ghost" style="width:100%;margin-top:8px;">Отмена</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

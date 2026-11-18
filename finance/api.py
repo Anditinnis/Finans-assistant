@@ -1,4 +1,5 @@
 import json
+import os
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
@@ -8,7 +9,7 @@ from .models import Transaction, Category
 from accounts.models import Profile, LinkCode
 
 
-API_SECRET_KEY = "super-secret-key-change-me"
+API_SECRET_KEY = os.getenv("API_SECRET_KEY", "super-secret-key-change-me")
 
 
 def check_key(request):
@@ -80,6 +81,51 @@ def api_get_balance(request):
         })
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=400)
+
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def api_get_transactions(request):
+    if not check_key(request):
+        return JsonResponse({"error": "Invalid API key"}, status=401)
+
+    try:
+        vk_id = request.GET.get("vk_id")
+        if not vk_id:
+            return JsonResponse({"error": "vk_id обязателен"}, status=400)
+
+        profile = Profile.objects.filter(vk_id=vk_id).first()
+        if not profile:
+            return JsonResponse({"error": "VK не привязан"}, status=404)
+
+        qs = Transaction.objects.filter(user=profile.user).select_related('category')
+        items = [
+            {
+                "id": t.id,
+                "type": t.category.type,
+                "amount": float(t.amount),
+                "category": t.category.name,
+                "date": t.date.isoformat(),
+                "comment": t.comment,
+            }
+            for t in qs
+        ]
+        return JsonResponse({"transactions": items})
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)
+
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def api_get_user_by_vk(request, vk_id):
+    if not check_key(request):
+        return JsonResponse({"error": "Invalid API key"}, status=401)
+
+    profile = Profile.objects.filter(vk_id=vk_id).first()
+    if not profile:
+        return JsonResponse({"error": "VK не привязан"}, status=404)
+
+    return JsonResponse({"user_id": profile.user_id})
 
 
 @csrf_exempt

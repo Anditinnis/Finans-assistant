@@ -129,3 +129,17 @@ def unlink_vk(request):
 
         return redirect('profile')
     return redirect('profile')
+
+
+@login_required
+def profile_edit(request):
+    profile = request.user.profile
+    if request.method == 'POST':
+        form = ProfileForm(request.POST, request.FILES, instance=profile)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Профиль обновлён')
+            return redirect('profile')
+    else:
+        form = ProfileForm(instance=profile)
+    return render(request, 'accounts/profile_edit.html', {'form': form})

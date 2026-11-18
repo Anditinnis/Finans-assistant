@@ -11,4 +11,5 @@ urlpatterns = [
     ), name='profile'),
     path('unlink-vk/', views.unlink_vk, name='unlink_vk'),
     path('link-vk/', views.link_vk_page, name='link_vk'),
+    path('profile/edit/', views.profile_edit, name='profile_edit'),
 ]
