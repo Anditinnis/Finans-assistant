@@ -11,7 +11,6 @@
             <p style="color: var(--text-muted);">Вот твой финансовый обзор</p>
         </div>
         
-        <!-- Блок статуса бота -->
         <div class="bot-status 
             {% if bot_status == 'Бот работает' %}bot-online
             {% elif 'не отвечает' in bot_status %}bot-warning
@@ -50,26 +49,28 @@
     <div class="form-card">
         <h3>🕒 Последние 5 операций</h3>
         {% if last_transactions %}
-            <table class="transactions-table" style="margin-top: 16px;">
-                <thead>
-                    <tr>
-                        <th>Дата</th>
-                        <th>Категория</th>
-                        <th>Сумма</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for t in last_transactions %}
+            <div class="transactions-table-wrapper" style="margin-top: 16px; padding: 0; background: transparent; border: none;">
+                <table class="transactions-table">
+                    <thead>
                         <tr>
-                            <td>{{ t.date|date:"d.m.Y" }}</td>
-                            <td>{{ t.category.icon }} {{ t.category.name }}</td>
-                            <td class="{% if t.is_income %}amount-income{% else %}amount-expense{% endif %}">
-                                {% if t.is_income %}+{% else %}−{% endif %}{{ t.amount }} ₽
-                            </td>
+                            <th>Дата</th>
+                            <th>Категория</th>
+                            <th>Сумма</th>
                         </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        {% for t in last_transactions %}
+                            <tr>
+                                <td>{{ t.date|date:"d.m.Y" }}</td>
+                                <td>{{ t.category.icon }} {{ t.category.name }}</td>
+                                <td class="{% if t.is_income %}amount-income{% else %}amount-expense{% endif %}">
+                                    {% if t.is_income %}+{% else %}−{% endif %}{{ t.amount }} ₽
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         {% else %}
             <div class="empty-state" style="margin-top: 16px;">
                 <div class="icon">📭</div>

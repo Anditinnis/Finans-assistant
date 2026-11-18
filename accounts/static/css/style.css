@@ -1005,3 +1005,29 @@ footer a { color: var(--accent); text-decoration: none; }
         min-height: 48px; font-size: 16px;
     }
 }
+/* ============================================================
+   ФИКС: таблицы не вылезают за экран на мобильных
+   ============================================================ */
+@media (max-width: 768px) {
+    html, body {
+        overflow-x: hidden;
+        max-width: 100vw;
+    }
+
+    .container, .form-card, .stat-card, .dashboard-header,
+    .transactions-table-wrapper, .chart-card, .profile-card {
+        max-width: 100%;
+        overflow-wrap: break-word;
+    }
+
+    .transactions-table-wrapper {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        width: 100%;
+    }
+
+    .transactions-table {
+        min-width: 480px;
+        width: 100%;
+    }
+}
