@@ -1034,3 +1034,31 @@ footer a { color: var(--accent); text-decoration: none; }
         min-width: 480px;
     }
 }
+
+/* ============================================================
+   ФИКС: меню на мобильных — клики по кнопкам
+   ============================================================ */
+@media (max-width: 768px) {
+    /* Оверлей ниже меню */
+    .nav-overlay {
+        z-index: 103 !important;
+    }
+    /* Меню выше оверлея */
+    .nav-links {
+        z-index: 106 !important;
+        pointer-events: auto !important;
+    }
+    /* Кнопки внутри меню — кликабельны */
+    .nav-links .btn,
+    .nav-links a,
+    .nav-links form button,
+    .nav-links .user-badge {
+        pointer-events: auto !important;
+        position: relative;
+        z-index: 107;
+    }
+    /* body не фиксируем — иначе ломаются клики */
+    body.menu-open {
+        overflow: hidden;
+    }
+}

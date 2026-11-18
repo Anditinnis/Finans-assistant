@@ -16,9 +16,13 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
+    // Создаём оверлей
     const overlay = document.createElement('div');
     overlay.className = 'nav-overlay';
     document.body.appendChild(overlay);
+
+    // По умолчанию оверлей не перехватывает клики
+    overlay.style.pointerEvents = 'none';
 
     function toggleMenu(open) {
         const isOpen = open !== undefined ? open : !navLinks.classList.contains('active');
@@ -26,8 +30,30 @@ document.addEventListener('DOMContentLoaded', () => {
         overlay.classList.toggle('active', isOpen);
         hamburger.classList.toggle('active', isOpen);
         hamburger.setAttribute('aria-expanded', String(isOpen));
-        // FIX: через класс, а не inline-style
         document.body.classList.toggle('menu-open', isOpen);
+
+        // Оверлей перехватывает клики только когда меню открыто
+        overlay.style.pointerEvents = isOpen ? 'auto' : 'none';
+
+        // Принудительно поднимаем меню над оверлеем
+        if (isOpen) {
+            navLinks.style.zIndex = '106';
+            navLinks.style.pointerEvents = 'auto';
+            // Убеждаемся, что все ссылки и кнопки кликабельны
+            navLinks.querySelectorAll('a, button').forEach(el => {
+                el.style.pointerEvents = 'auto';
+                el.style.position = 'relative';
+                el.style.zIndex = '107';
+            });
+        } else {
+            navLinks.style.zIndex = '';
+            navLinks.style.pointerEvents = '';
+            navLinks.querySelectorAll('a, button').forEach(el => {
+                el.style.pointerEvents = '';
+                el.style.position = '';
+                el.style.zIndex = '';
+            });
+        }
     }
 
     hamburger.addEventListener('click', () => toggleMenu());
@@ -39,10 +65,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Закрываем меню при клике по любой ссылке
     navLinks.querySelectorAll('a').forEach(link => {
         link.addEventListener('click', () => toggleMenu(false));
     });
 
+    // Закрываем меню при ресайзе на десктоп
     let resizeTimer;
     window.addEventListener('resize', () => {
         clearTimeout(resizeTimer);
