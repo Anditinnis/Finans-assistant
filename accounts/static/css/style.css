@@ -942,123 +942,51 @@ footer a { color: var(--accent); text-decoration: none; }
 }
 
 /* ============================================================
-   МОБИЛЬНЫЕ ФИКСЫ (добавлено)
+   ФИНАЛЬНЫЙ ФИКС МЕНЮ НА МОБИЛЬНЫХ
    ============================================================ */
 @media (max-width: 768px) {
-    /* Таблицы: горизонтальный скролл без ломки вёрстки */
-    .transactions-table-wrapper {
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        margin: 0 -16px;
-        padding: 12px;
-    }
-    .transactions-table {
-        min-width: 560px;
-        font-size: 0.8rem;
-    }
-    .transactions-table th,
-    .transactions-table td {
-        padding: 10px 6px;
-        white-space: nowrap;
-    }
-
-    /* Инпуты: без зума на iOS */
-    .form-group input,
-    .form-control,
-    .form-card select,
-    .form-card textarea,
-    .auth-card form p input {
-        font-size: 16px !important;
-        min-height: 48px;
-    }
-
-    /* Меню: фикс прыжка страницы */
+    /* 1. Убираем position: fixed у body — он ломает клики */
     body.menu-open {
-        position: fixed;
-        width: 100%;
-        overflow: hidden;
-    }
-    .nav-links {
-        padding-top: max(90px, env(safe-area-inset-top));
-        padding-bottom: max(24px, env(safe-area-inset-bottom));
+        overflow: hidden !important;
+        position: static !important;
     }
 
-    /* Кнопки в профиле — на всю ширину */
-    .profile-card .btn {
-        display: block;
-        width: 100%;
-        margin-left: 0;
-        margin-right: 0;
-    }
-
-    /* Графики */
-    .chart-wrap {
-        height: 240px;
-        width: 100%;
-    }
-    .chart-card canvas {
-        max-width: 100% !important;
-        height: auto !important;
-    }
-
-    /* Аватар в профиле — не вылезает */
-    .profile-avatar-large img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        border-radius: 50%;
-    }
-
-    /* Дашборд: заголовок и статус бота в столбик */
-    .dashboard-header {
-        flex-direction: column;
-        align-items: flex-start !important;
-    }
-    .bot-status {
-        font-size: 0.8rem;
-        padding: 6px 12px;
-    }
-}
-
-@media (max-width: 380px) {
-    .stats-grid {
-        grid-template-columns: 1fr;
-    }
-    .hero h1 {
-        font-size: 1.7rem;
-    }
-    .section-title {
-        font-size: 1.35rem;
-    }
-    .transactions-table {
-        min-width: 480px;
-    }
-}
-
-/* ============================================================
-   ФИКС: меню на мобильных — клики по кнопкам
-   ============================================================ */
-@media (max-width: 768px) {
-    /* Оверлей ниже меню */
+    /* 2. Оверлей: не перехватывает клики, без blur */
     .nav-overlay {
-        z-index: 103 !important;
+        z-index: 90 !important;
+        pointer-events: none !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        background: rgba(0, 0, 0, 0.4) !important;
     }
-    /* Меню выше оверлея */
-    .nav-links {
-        z-index: 106 !important;
+    .nav-overlay.active {
         pointer-events: auto !important;
     }
-    /* Кнопки внутри меню — кликабельны */
+
+    /* 3. Меню: выше оверлея, кликабельно, без blur-ловушки */
+    .nav-links {
+        z-index: 200 !important;
+        pointer-events: auto !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        background: rgba(19, 24, 50, 0.98) !important;
+    }
+
+    /* 4. Все элементы меню — кликабельны */
     .nav-links .btn,
     .nav-links a,
+    .nav-links form,
     .nav-links form button,
     .nav-links .user-badge {
         pointer-events: auto !important;
-        position: relative;
-        z-index: 107;
+        position: relative !important;
+        z-index: 201 !important;
     }
-    /* body не фиксируем — иначе ломаются клики */
-    body.menu-open {
-        overflow: hidden;
+
+    /* 5. Навбар: без blur, иначе ловушка для кликов */
+    .navbar {
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        background: rgba(10, 14, 39, 0.95) !important;
     }
 }
