@@ -26,6 +26,12 @@
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
+html, body {
+    overflow-x: hidden;
+    max-width: 100vw;
+    position: relative;
+}
+
 html { scroll-behavior: smooth; }
 
 body {
@@ -33,15 +39,13 @@ body {
     background: var(--bg-primary);
     color: var(--text-primary);
     min-height: 100vh;
-    overflow-x: hidden;
-    position: relative;
     line-height: 1.6;
 }
 
 body.menu-open { overflow: hidden; }
 
 /* ============================================================
-   ЖИВОЙ ФОН
+   ЖИВОЙ ФОН (без blur — только цветные пятна)
    ============================================================ */
 .bg-blobs {
     position: fixed; inset: 0;
@@ -50,7 +54,7 @@ body.menu-open { overflow: hidden; }
 
 .blob {
     position: absolute; border-radius: 50%;
-    filter: blur(80px); opacity: 0.4;
+    opacity: 0.15;
     animation: float 20s ease-in-out infinite;
     will-change: transform;
 }
@@ -66,20 +70,17 @@ body.menu-open { overflow: hidden; }
 }
 
 /* ============================================================
-   НАВИГАЦИЯ
+   НАВИГАЦИЯ (без blur)
    ============================================================ */
 .navbar {
     position: sticky; top: 0; z-index: 100;
     padding: 16px 0;
-    background: rgba(10, 14, 39, 0.6);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    background: rgba(10, 14, 39, 0.98);
     border-bottom: 1px solid var(--border);
     transition: all 0.3s ease;
 }
 
 .navbar.scrolled {
-    background: rgba(10, 14, 39, 0.9);
     box-shadow: var(--shadow-card);
 }
 
@@ -144,11 +145,9 @@ body.menu-open { overflow: hidden; }
 
 .nav-overlay {
     position: fixed; inset: 0;
-    background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
+    background: rgba(0, 0, 0, 0.5);
     opacity: 0; pointer-events: none;
-    transition: opacity 0.3s; z-index: 104;
+    transition: opacity 0.3s; z-index: 90;
 }
 
 .nav-overlay.active { opacity: 1; pointer-events: auto; }
@@ -190,7 +189,6 @@ body.menu-open { overflow: hidden; }
 .btn-outline {
     background: transparent; color: var(--text-primary);
     border: 1px solid var(--border);
-    backdrop-filter: blur(10px);
 }
 
 .btn-outline:hover {
@@ -298,8 +296,6 @@ body.menu-open { overflow: hidden; }
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 40px 32px;
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative; overflow: hidden;
 }
@@ -371,8 +367,6 @@ body.menu-open { overflow: hidden; }
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 48px 40px;
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
     box-shadow: var(--shadow-card);
     animation: fadeUp 0.6s ease-out;
     position: relative; overflow: hidden;
@@ -487,8 +481,6 @@ body.menu-open { overflow: hidden; }
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 28px;
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
     transition: all 0.3s;
     animation: fadeUp 0.5s ease-out backwards;
 }
@@ -521,8 +513,6 @@ body.menu-open { overflow: hidden; }
     border: 2px dashed var(--border);
     border-radius: var(--radius);
     padding: 60px 40px; text-align: center;
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
 }
 
 .empty-state .icon { font-size: 64px; margin-bottom: 20px; opacity: 0.5; }
@@ -553,8 +543,6 @@ footer a { color: var(--accent); text-decoration: none; }
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 32px;
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
     text-align: center;
 }
 
@@ -592,8 +580,6 @@ footer a { color: var(--accent); text-decoration: none; }
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 28px;
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
     margin-bottom: 24px;
 }
 
@@ -613,8 +599,6 @@ footer a { color: var(--accent); text-decoration: none; }
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 28px;
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
 }
 
 .form-card h3 { font-size: 1.1rem; margin-bottom: 8px; }
@@ -646,8 +630,8 @@ footer a { color: var(--accent); text-decoration: none; }
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 28px;
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 .transactions-table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
@@ -773,16 +757,16 @@ footer a { color: var(--accent); text-decoration: none; }
    ============================================================ */
 @media (max-width: 768px) {
     /* ---------- ФОН ---------- */
-    .blob { filter: blur(50px); }
+    .blob { filter: blur(40px); opacity: 0.1; }
     .blob:nth-child(1) { width: 350px; height: 350px; }
     .blob:nth-child(2) { width: 300px; height: 300px; }
     .blob:nth-child(3) { width: 320px; height: 320px; }
 
     /* ---------- НАВБАР ---------- */
     .navbar {
+        background: rgba(10, 14, 39, 0.98);
         backdrop-filter: none !important;
         -webkit-backdrop-filter: none !important;
-        background: rgba(10, 14, 39, 0.98) !important;
     }
 
     .hamburger { display: flex; }
@@ -918,10 +902,11 @@ footer a { color: var(--accent); text-decoration: none; }
         padding: 16px;
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
+        max-width: 100%;
     }
     .transactions-table {
         font-size: 0.85rem;
-        min-width: 560px;
+        min-width: 480px;
     }
     .form-card { padding: 20px; }
 
@@ -933,6 +918,18 @@ footer a { color: var(--accent); text-decoration: none; }
 
     /* ---------- БОТ-СТАТУС ---------- */
     .bot-status { font-size: 0.8rem; padding: 6px 12px; }
+
+    /* ---------- ЗАЩИТА ОТ ГОРИЗОНТАЛЬНОГО СКРОЛЛА ---------- */
+    html, body {
+        overflow-x: hidden !important;
+        max-width: 100vw !important;
+    }
+    .container, .form-card, .stat-card, .dashboard-header,
+    .transactions-table-wrapper, .chart-card, .profile-card,
+    .feature-card, .auth-card, .empty-state {
+        max-width: 100%;
+        overflow-wrap: break-word;
+    }
 }
 
 /* ============================================================
@@ -942,7 +939,7 @@ footer a { color: var(--accent); text-decoration: none; }
     .stats-grid { grid-template-columns: 1fr; }
     .hero h1 { font-size: 1.7rem; }
     .section-title { font-size: 1.35rem; }
-    .transactions-table { min-width: 480px; }
+    .transactions-table { min-width: 420px; }
 }
 
 /* ============================================================
@@ -951,14 +948,6 @@ footer a { color: var(--accent); text-decoration: none; }
 @media (min-width: 1440px) {
     .container, .nav-inner { max-width: 1320px; }
     .hero h1 { font-size: 5rem; }
-}
-
-/* ============================================================
-   АЛЬБОМНАЯ ОРИЕНТАЦИЯ
-   ============================================================ */
-@media (max-height: 500px) and (orientation: landscape) {
-    .hero { padding: 30px 0; }
-    .nav-links { padding-top: 70px; }
 }
 
 /* ============================================================
@@ -1003,31 +992,5 @@ footer a { color: var(--accent); text-decoration: none; }
     .btn, .hamburger, .nav-links a, .nav-links .btn { min-height: 44px; }
     .form-group input, .auth-card form p input {
         min-height: 48px; font-size: 16px;
-    }
-}
-/* ============================================================
-   ФИКС: таблицы не вылезают за экран на мобильных
-   ============================================================ */
-@media (max-width: 768px) {
-    html, body {
-        overflow-x: hidden;
-        max-width: 100vw;
-    }
-
-    .container, .form-card, .stat-card, .dashboard-header,
-    .transactions-table-wrapper, .chart-card, .profile-card {
-        max-width: 100%;
-        overflow-wrap: break-word;
-    }
-
-    .transactions-table-wrapper {
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        width: 100%;
-    }
-
-    .transactions-table {
-        min-width: 480px;
-        width: 100%;
     }
 }
