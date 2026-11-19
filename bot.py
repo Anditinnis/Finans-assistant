@@ -407,11 +407,5 @@ while True:
             send(vk_id, "❓ Не понял. Используй кнопки ниже 👇", keyboard=make_main_keyboard())
 
     except Exception as e:
-        print(f"Ошибка соединения с VK: {e}. Пересоздаю Long Poll...")
-        time.sleep(5)
-        try:
-            longpoll = create_longpoll()
-            print("Long Poll пересоздан.")
-        except Exception as err:
-            print(f"Не удалось пересоздать Long Poll: {err}")
-            time.sleep(30)
+        print(f"Ошибка соединения с VK: {e}. Переподключение через 30 секунд...")
+        time.sleep(30)
