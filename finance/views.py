@@ -38,7 +38,7 @@ def transactions_list(request):
             t.source = 'web'
             t.save()
             messages.success(request, f'Транзакция добавлена: {t}')
-            return redirect('transactions_list')
+            return redirect('/finance/transactions/?added=1')
         else:
             messages.error(request, 'Проверь форму — есть ошибки')
     else:

@@ -252,15 +252,28 @@ if (!isTouch && !prefersReducedMotion) {
     });
 }
 
-// ============ LOADER: СКРЫТИЕ С FALLBACK ============
+// ============ LOADER: СКРЫТИЕ БЕЗ ЗАДЕРЖКИ ============
 function hideLoader() {
     const loader = document.getElementById('pageLoader');
-    if (loader) loader.classList.add('hidden');
+    if (loader) {
+        loader.classList.add('hidden');
+        // полностью убрать из DOM через 0.4s (после transition)
+        setTimeout(() => loader.remove(), 400);
+    }
 }
-if (document.readyState === 'complete') {
-    setTimeout(hideLoader, 200);
+
+// Скрываем, как только DOM готов (не ждём картинки/шрифты)
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', hideLoader);
 } else {
-    window.addEventListener('load', () => setTimeout(hideLoader, 200));
+    hideLoader();
 }
-// страховка: если что-то пошло не так — скрыть через 3 секунды
-setTimeout(hideLoader, 3000);
+
+// FALLBACK: если DOMContentLoaded уже прошёл, но что-то пошло не так —
+// максимум 1.5 секунды, а не 3
+setTimeout(hideLoader, 1500);
+
+// при возврате со страницы через bfcache — лоадер не нужен
+window.addEventListener('pageshow', (e) => {
+    if (e.persisted) hideLoader();
+});
