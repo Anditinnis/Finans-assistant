@@ -96,18 +96,8 @@ def unlink_vk(request):
     if request.method == 'POST':
         profile, _ = Profile.objects.get_or_create(user=request.user)
         if profile.vk_id:
-            vk_id = profile.vk_id
             profile.vk_id = None
             profile.save()
-            db_path = os.path.join(settings.BASE_DIR, 'db.sqlite3')
-            try:
-                conn = sqlite3.connect(db_path)
-                cursor = conn.cursor()
-                cursor.execute("DELETE FROM vk_links WHERE vk_id = ?", (vk_id,))
-                conn.commit()
-                conn.close()
-            except Exception as e:
-                print(f"Ошибка при удалении из vk_links: {e}")
         return redirect('profile')
     return redirect('profile')
 

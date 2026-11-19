@@ -2,6 +2,7 @@ import os
 import vk_api
 import requests
 import time
+import threading
 
 from vk_api.bot_longpoll import VkBotLongPoll, VkBotEventType
 from vk_api.keyboard import VkKeyboard, VkKeyboardColor
@@ -12,13 +13,15 @@ load_dotenv()
 
 VK_TOKEN = os.getenv("VK_TOKEN")
 API_URL = os.getenv("API_URL", "http://127.0.0.1:8000")
-API_SECRET_KEY = os.getenv("API_SECRET_KEY", "super-secret-key-change-me")
+API_SECRET_KEY = os.getenv("API_SECRET_KEY")
 SITE_URL = os.getenv("SITE_URL", "https://portal.uppcoder.com/cust-portal/stacks/2572")
 
 GROUP_ID = 243085760
 
 if not VK_TOKEN:
     raise RuntimeError("VK_TOKEN не найден в .env")
+if not API_SECRET_KEY:
+    raise RuntimeError("API_SECRET_KEY не найден в .env")
 
 vk_session = vk_api.VkApi(token=VK_TOKEN)
 vk = vk_session.get_api()
@@ -39,6 +42,14 @@ def touch_heartbeat():
     except Exception:
         pass
 
+
+def heartbeat_loop():
+    while True:
+        touch_heartbeat()
+        time.sleep(60)
+
+
+threading.Thread(target=heartbeat_loop, daemon=True).start()
 
 def api_post(path, data):
     try:

@@ -7,7 +7,7 @@ import secrets
 
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
-    vk_id = models.BigIntegerField(null=True, blank=True)
+    vk_id = models.BigIntegerField(null=True, blank=True, unique=True)
     avatar = models.ImageField(upload_to='avatars/', null=True, blank=True)
 
     def __str__(self):

@@ -1,21 +1,26 @@
 import json
 import os
+import secrets
 import requests
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from django.utils import timezone
 from django.db.models import Sum, Q
+from django.db import IntegrityError
 from django.core.files.base import ContentFile
 from .models import Transaction, Category
 from accounts.models import Profile, LinkCode
 
 
-API_SECRET_KEY = os.getenv("API_SECRET_KEY", "super-secret-key-change-me")
+API_SECRET_KEY = os.getenv("API_SECRET_KEY")
+if not API_SECRET_KEY:
+    raise RuntimeError("API_SECRET_KEY не найден в .env")
 
 
 def check_key(request):
-    return request.headers.get("x-api-key") == API_SECRET_KEY
+    key = request.headers.get("x-api-key", "")
+    return secrets.compare_digest(key, API_SECRET_KEY)
 
 
 def download_vk_avatar(profile, avatar_url):
@@ -130,9 +135,15 @@ def api_link_vk(request):
         if not link or link.is_expired():
             return JsonResponse({"error": "Код недействителен или истёк"}, status=400)
 
+        if Profile.objects.filter(vk_id=vk_id).exists():
+            return JsonResponse({"error": "Этот VK уже привязан к другому аккаунту"}, status=409)
+
         profile, _ = Profile.objects.get_or_create(user=link.user)
         profile.vk_id = vk_id
-        profile.save()
+        try:
+            profile.save()
+        except IntegrityError:
+            return JsonResponse({"error": "Этот VK уже привязан"}, status=409)
 
         if avatar_url:
             download_vk_avatar(profile, avatar_url)
