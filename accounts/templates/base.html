@@ -69,5 +69,20 @@
 
 <script src="{% static 'js/main.js' %}"></script>
 {% block extra_js %}{% endblock %}
+
+<div class="page-loader" id="pageLoader">
+    <div class="loader-blob"></div>
+</div>
+
+
+{% if messages %}
+<div class="toast-container" id="toastContainer">
+    {% for message in messages %}
+    <div class="toast toast-{{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+</div>
+{% endif %}
+
+
 </body>
 </html>

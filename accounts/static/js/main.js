@@ -13,7 +13,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!hamburger || !navLinks) return;
 
-    // Создаём оверлей
     const overlay = document.createElement('div');
     overlay.className = 'nav-overlay';
     document.body.appendChild(overlay);
@@ -55,9 +54,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// ============ ПОЯВЛЕНИЕ ПРИ СКРОЛЛЕ ============
+// ============ ОБЩИЕ ФЛАГИ ============
 const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const isTouch = window.matchMedia('(hover: none)').matches;
 
+// ============ ПОЯВЛЕНИЕ ПРИ СКРОЛЛЕ ============
 if (!prefersReducedMotion && 'IntersectionObserver' in window) {
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
@@ -77,8 +78,6 @@ if (!prefersReducedMotion && 'IntersectionObserver' in window) {
 }
 
 // ============ ПАРАЛЛАКС ФОНА ============
-const isTouch = window.matchMedia('(hover: none)').matches;
-
 if (!isTouch && !prefersReducedMotion) {
     document.addEventListener('mousemove', (e) => {
         const blobs = document.querySelectorAll('.blob');
@@ -130,3 +129,138 @@ document.addEventListener('visibilitychange', () => {
         blob.style.animationPlayState = document.hidden ? 'paused' : 'running';
     });
 });
+
+// ============ АНИМАЦИЯ ЧИСЕЛ ============
+function animateNumber(el) {
+    const raw = el.textContent.replace(/[^\d.-]/g, '');
+    const target = parseFloat(raw);
+    if (isNaN(target)) return;
+
+    const duration = 1200;
+    const start = performance.now();
+    const suffix = el.textContent.replace(/[\d\s.,-]/g, '').trim();
+
+    function tick(now) {
+        const progress = Math.min((now - start) / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        const current = target * eased;
+        el.textContent = current.toLocaleString('ru-RU', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }) + ' ' + suffix;
+        if (progress < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+}
+
+if (!prefersReducedMotion && 'IntersectionObserver' in window) {
+    const numObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                animateNumber(entry.target);
+                numObserver.unobserve(entry.target);
+            }
+        });
+    }, { threshold: 0.5 });
+
+    document.querySelectorAll('.stat-value').forEach(el => numObserver.observe(el));
+}
+
+// ============ ПРОГРЕСС БЮДЖЕТА ============
+document.addEventListener('DOMContentLoaded', () => {
+    const fill = document.getElementById('budgetFill');
+    const percentEl = document.getElementById('budgetPercent');
+    if (!fill || !percentEl) return;
+
+    const expense = parseFloat(fill.dataset.expense || 0);
+    const income = parseFloat(fill.dataset.income || 0);
+    const percent = income > 0 ? Math.min((expense / income) * 100, 100) : 0;
+
+    setTimeout(() => {
+        fill.style.width = percent + '%';
+        let current = 0;
+        const step = percent / 30;
+        const timer = setInterval(() => {
+            current += step;
+            if (current >= percent) {
+                current = percent;
+                clearInterval(timer);
+            }
+            percentEl.textContent = Math.round(current) + '%';
+        }, 20);
+    }, 300);
+
+    if (percent > 90) fill.classList.add('danger');
+    else if (percent > 70) fill.classList.add('warning');
+});
+
+// ============ КОНФЕТТИ ============
+function launchConfetti() {
+    const colors = ['#6366f1', '#8b5cf6', '#ec4899', '#10b981', '#f59e0b'];
+    for (let i = 0; i < 60; i++) {
+        const confetti = document.createElement('div');
+        confetti.style.cssText = `
+            position: fixed;
+            width: 8px; height: 8px;
+            background: ${colors[Math.floor(Math.random() * colors.length)]};
+            left: ${Math.random() * 100}vw;
+            top: -10px;
+            border-radius: ${Math.random() > 0.5 ? '50%' : '0'};
+            pointer-events: none;
+            z-index: 9999;
+            animation: confettiFall ${2 + Math.random() * 2}s linear forwards;
+        `;
+        document.body.appendChild(confetti);
+        setTimeout(() => confetti.remove(), 4000);
+    }
+}
+window.launchConfetti = launchConfetti;
+
+// ============ ПРИВЕТСТВИЕ И ЧАСЫ ============
+document.addEventListener('DOMContentLoaded', () => {
+    const greeting = document.getElementById('greeting');
+    const clock = document.getElementById('liveClock');
+    if (greeting) {
+        const h = new Date().getHours();
+        greeting.textContent = h < 6 ? 'Доброй ночи' : h < 12 ? 'Доброе утро' : h < 18 ? 'Добрый день' : 'Добрый вечер';
+    }
+    if (clock) {
+        const update = () => {
+            const now = new Date();
+            clock.textContent = now.toLocaleString('ru-RU', {
+                weekday: 'long', day: 'numeric', month: 'long',
+                hour: '2-digit', minute: '2-digit'
+            });
+        };
+        update();
+        setInterval(update, 30000);
+    }
+});
+
+// ============ TILT-ЭФФЕКТ ============
+if (!isTouch && !prefersReducedMotion) {
+    document.querySelectorAll('.stat-card, .feature-card').forEach(card => {
+        card.addEventListener('mousemove', (e) => {
+            const rect = card.getBoundingClientRect();
+            const x = (e.clientX - rect.left) / rect.width - 0.5;
+            const y = (e.clientY - rect.top) / rect.height - 0.5;
+            card.style.transform = `perspective(800px) rotateX(${-y * 6}deg) rotateY(${x * 6}deg) translateY(-4px)`;
+        });
+        card.addEventListener('mouseleave', () => {
+            card.style.transform = '';
+        });
+    });
+}
+
+// ============ LOADER: СКРЫТИЕ С FALLBACK ============
+function hideLoader() {
+    const loader = document.getElementById('pageLoader');
+    if (loader) loader.classList.add('hidden');
+}
+if (document.readyState === 'complete') {
+    setTimeout(hideLoader, 200);
+} else {
+    window.addEventListener('load', () => setTimeout(hideLoader, 200));
+}
+// страховка: если что-то пошло не так — скрыть через 3 секунды
+setTimeout(hideLoader, 3000);

@@ -821,6 +821,12 @@ footer a { color: var(--accent); text-decoration: none; }
     }
 }
 
+.stat-card, .feature-card {
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                border-color 0.3s, box-shadow 0.3s;
+    will-change: transform;
+}
+
 /* ============================================================
    МАЛЫЕ ТЕЛЕФОНЫ (≤ 380px)
    ============================================================ */
@@ -872,6 +878,96 @@ footer a { color: var(--accent); text-decoration: none; }
     .feature-card:hover, .stat-card:hover { transform: none; box-shadow: var(--shadow-card); }
     .btn-primary:hover { transform: none; }
     .btn-primary::before { display: none; }
+}
+
+.btn-primary {
+    background-size: 200% 200%;
+    animation: gradientShift 4s ease infinite;
+}
+
+
+.budget-progress-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px 28px;
+    margin-bottom: 32px;
+}
+.budget-progress-header,
+.budget-progress-footer {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+}
+.budget-progress-footer { margin-top: 12px; margin-bottom: 0; font-size: 0.85rem; }
+.budget-progress-bar {
+    height: 10px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 100px;
+    overflow: hidden;
+}
+.budget-progress-fill {
+    height: 100%;
+    width: 0;
+    background: var(--gradient-1);
+    border-radius: 100px;
+    transition: width 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.budget-progress-fill.warning { background: linear-gradient(135deg, #f59e0b, #ef4444); }
+.budget-progress-fill.danger  { background: linear-gradient(135deg, #ef4444, #b91c1c); }
+
+.page-loader {
+    position: fixed; inset: 0;
+    background: var(--bg-primary);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 9999;
+    transition: opacity 0.4s;
+}
+.page-loader.hidden { opacity: 0; pointer-events: none; }
+.loader-blob {
+    width: 60px; height: 60px;
+    border-radius: 50%;
+    background: var(--gradient-1);
+    animation: loaderPulse 1.2s ease-in-out infinite;
+}
+@keyframes loaderPulse {
+    0%, 100% { transform: scale(0.8); opacity: 0.6; }
+    50%      { transform: scale(1.2); opacity: 1; }
+}
+
+
+.toast-container {
+    position: fixed;
+    top: 80px; right: 20px;
+    z-index: 1000;
+    display: flex; flex-direction: column; gap: 10px;
+}
+.toast {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    padding: 14px 20px;
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    box-shadow: var(--shadow-card);
+    animation: toastIn 0.4s ease-out, toastOut 0.4s ease-in 4s forwards;
+    max-width: 340px;
+}
+.toast-success { border-left-color: var(--success); }
+.toast-error   { border-left-color: var(--danger); }
+@keyframes toastIn  { from { opacity: 0; transform: translateX(100%); } to { opacity: 1; transform: translateX(0); } }
+@keyframes toastOut { to { opacity: 0; transform: translateX(100%); } }
+
+
+@keyframes confettiFall {
+    to { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+}
+
+@view-transition {
+    navigation: auto;
 }
 
 @media (pointer: coarse) {

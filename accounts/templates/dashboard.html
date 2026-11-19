@@ -5,12 +5,15 @@
 
 {% block content %}
 <div class="container dashboard">
-    <div class="dashboard-header" style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px;">
+    <div class="dashboard-header"
+        style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px;">
         <div>
-            <h1>Привет, <span>{{ user.username }}</span> 👋</h1>
-            <p style="color: var(--text-muted);">Вот твой финансовый обзор</p>
+            <h1><span id="greeting">Привет</span>, <span>{{ user.username }}</span> 👋</h1>
+            <p style="color: var(--text-muted);">
+                <span id="liveClock"></span> · Вот твой финансовый обзор
+            </p>
         </div>
-        
+
         <div class="bot-status 
             {% if bot_status == 'Бот работает' %}bot-online
             {% elif 'не отвечает' in bot_status %}bot-warning
@@ -40,6 +43,22 @@
         </div>
     </div>
 
+    <div class="budget-progress-card">
+        <div class="budget-progress-header">
+            <span>Расходы за месяц</span>
+            <span id="budgetPercent">0%</span>
+        </div>
+        <div class="budget-progress-bar">
+            <div class="budget-progress-fill" id="budgetFill"
+                 data-expense="{{ month_expense }}"
+                 data-income="{{ month_income }}"></div>
+        </div>
+        <div class="budget-progress-footer">
+            <span>{{ month_expense|floatformat:2 }} ₽ потрачено</span>
+            <span>из {{ month_income|floatformat:2 }} ₽</span>
+        </div>
+    </div>
+
     <div class="dashboard-actions" style="display:flex; gap:12px; margin-bottom: 32px; flex-wrap: wrap;">
         <a href="{% url 'transactions_list' %}" class="btn btn-primary">➕ Добавить транзакцию</a>
         <a href="{% url 'categories_list' %}" class="btn btn-outline">📂 Категории</a>
@@ -49,36 +68,48 @@
     <div class="form-card">
         <h3>🕒 Последние 5 операций</h3>
         {% if last_transactions %}
-            <div class="transactions-table-wrapper" style="margin-top: 16px; padding: 0; background: transparent; border: none;">
-                <table class="transactions-table">
-                    <thead>
-                        <tr>
-                            <th>Дата</th>
-                            <th>Категория</th>
-                            <th>Сумма</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for t in last_transactions %}
-                            <tr>
-                                <td>{{ t.date|date:"d.m.Y" }}</td>
-                                <td>{{ t.category.icon }} {{ t.category.name }}</td>
-                                <td class="{% if t.is_income %}amount-income{% else %}amount-expense{% endif %}">
-                                    {% if t.is_income %}+{% else %}−{% endif %}{{ t.amount }} ₽
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+        <div class="transactions-table-wrapper"
+            style="margin-top: 16px; padding: 0; background: transparent; border: none;">
+            <table class="transactions-table">
+                <thead>
+                    <tr>
+                        <th>Дата</th>
+                        <th>Категория</th>
+                        <th>Сумма</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for t in last_transactions %}
+                    <tr>
+                        <td>{{ t.date|date:"d.m.Y" }}</td>
+                        <td>{{ t.category.icon }} {{ t.category.name }}</td>
+                        <td class="{% if t.is_income %}amount-income{% else %}amount-expense{% endif %}">
+                            {% if t.is_income %}+{% else %}−{% endif %}{{ t.amount }} ₽
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
         {% else %}
-            <div class="empty-state" style="margin-top: 16px;">
-                <div class="icon">📭</div>
-                <h3>Пока нет транзакций</h3>
-                <p>Добавь первую операцию — здесь появится история.</p>
-                <a href="{% url 'transactions_list' %}" class="btn btn-primary">Добавить</a>
-            </div>
+        <div class="empty-state" style="margin-top: 16px;">
+            <div class="icon floating">📭</div>
+            <h3>Пока нет транзакций</h3>
+            <p>Добавь первую операцию — здесь появится история.</p>
+            <a href="{% url 'transactions_list' %}" class="btn btn-primary">Добавить</a>
+        </div>
         {% endif %}
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // если только что добавили транзакцию — салют
+    document.addEventListener('DOMContentLoaded', () => {
+        if (new URLSearchParams(location.search).get('added') === '1' && typeof launchConfetti === 'function') {
+            launchConfetti();
+        }
+    });
+</script>
 {% endblock %}
