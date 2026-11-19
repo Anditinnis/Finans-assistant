@@ -132,41 +132,34 @@ document.addEventListener('visibilitychange', () => {
 
 // ============ АНИМАЦИЯ ЧИСЕЛ ============
 function animateNumber(el) {
-    // Получаем исходную строку (например, "648.00 ₽" или "1000.00 ₽")
-    const originalText = el.textContent.trim();
+    // Берём чистое число из data-атрибута, который мы прописали в HTML
+    const target = parseFloat(el.dataset.value);
+    if (isNaN(target)) return; // если числа нет — ничего не делаем
+
+    // Берём суффикс (например, " ₽" или пустую строку)
+    const suffix = el.dataset.suffix || '';
     
-    // Отделяем валюту (₽) и всё остальное
-    const suffix = originalText.includes('₽') ? ' ₽' : '';
-    
-    // Убираем всё, кроме цифр и точки/запятой
-    let numStr = originalText.replace('₽', '').replace(/\s/g, '');
-    
-    // Если пришла точка (Django отдаёт 648.00), меняем её на запятую для парсинга
-    if (numStr.includes('.') && !numStr.includes(',')) {
-        numStr = numStr.replace('.', '.');
-    } else {
-        // Если уже есть запятая (русский формат), убираем точки тысяч
-        numStr = numStr.replace(/\./g, '').replace(',', '.');
-    }
-    
-    const target = parseFloat(numStr);
-    if (isNaN(target)) return;
+    // Определяем, нужны ли копейки (если в исходном числе есть точка)
+    const hasDecimals = el.dataset.value.includes('.');
 
     const duration = 1200;
     const start = performance.now();
-    
-    // Определяем, нужны ли копейки (если транзакций 4, показываем "4", а не "4,00")
-    const hasDecimals = originalText.includes('.') || originalText.includes(',');
 
     function tick(now) {
         const progress = Math.min((now - start) / duration, 1);
-        const eased = 1 - Math.pow(1 - progress, 3);
+        const eased = 1 - Math.pow(1 - progress, 3); // easeOutCubic
         const current = target * eased;
         
-        let formatted = current.toLocaleString('ru-RU', {
-            minimumFractionDigits: hasDecimals ? 2 : 0,
-            maximumFractionDigits: hasDecimals ? 2 : 0
-        });
+        let formatted;
+        if (hasDecimals) {
+            formatted = current.toLocaleString('ru-RU', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        } else {
+            // для целых чисел (кол-во транзакций) — без копеек
+            formatted = Math.round(current).toLocaleString('ru-RU'); 
+        }
         
         el.textContent = formatted + suffix;
         if (progress < 1) requestAnimationFrame(tick);
