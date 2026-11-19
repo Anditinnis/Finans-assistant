@@ -132,38 +132,46 @@ document.addEventListener('visibilitychange', () => {
 
 // ============ АНИМАЦИЯ ЧИСЕЛ ============
 function animateNumber(el) {
-    const raw = el.textContent.replace(/[^\d.-]/g, '');
-    const target = parseFloat(raw);
+    // Получаем исходную строку (например, "648.00 ₽" или "1000.00 ₽")
+    const originalText = el.textContent.trim();
+    
+    // Отделяем валюту (₽) и всё остальное
+    const suffix = originalText.includes('₽') ? ' ₽' : '';
+    
+    // Убираем всё, кроме цифр и точки/запятой
+    let numStr = originalText.replace('₽', '').replace(/\s/g, '');
+    
+    // Если пришла точка (Django отдаёт 648.00), меняем её на запятую для парсинга
+    if (numStr.includes('.') && !numStr.includes(',')) {
+        numStr = numStr.replace('.', '.');
+    } else {
+        // Если уже есть запятая (русский формат), убираем точки тысяч
+        numStr = numStr.replace(/\./g, '').replace(',', '.');
+    }
+    
+    const target = parseFloat(numStr);
     if (isNaN(target)) return;
 
     const duration = 1200;
     const start = performance.now();
-    const suffix = el.textContent.replace(/[\d\s.,-]/g, '').trim();
+    
+    // Определяем, нужны ли копейки (если транзакций 4, показываем "4", а не "4,00")
+    const hasDecimals = originalText.includes('.') || originalText.includes(',');
 
     function tick(now) {
         const progress = Math.min((now - start) / duration, 1);
         const eased = 1 - Math.pow(1 - progress, 3);
         const current = target * eased;
-        el.textContent = current.toLocaleString('ru-RU', {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
-        }) + ' ' + suffix;
+        
+        let formatted = current.toLocaleString('ru-RU', {
+            minimumFractionDigits: hasDecimals ? 2 : 0,
+            maximumFractionDigits: hasDecimals ? 2 : 0
+        });
+        
+        el.textContent = formatted + suffix;
         if (progress < 1) requestAnimationFrame(tick);
     }
     requestAnimationFrame(tick);
-}
-
-if (!prefersReducedMotion && 'IntersectionObserver' in window) {
-    const numObserver = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                animateNumber(entry.target);
-                numObserver.unobserve(entry.target);
-            }
-        });
-    }, { threshold: 0.5 });
-
-    document.querySelectorAll('.stat-value').forEach(el => numObserver.observe(el));
 }
 
 // ============ ПРОГРЕСС БЮДЖЕТА ============
