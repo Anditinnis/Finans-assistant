@@ -25,7 +25,7 @@ if not API_SECRET_KEY:
 
 vk_session = vk_api.VkApi(token=VK_TOKEN)
 vk = vk_session.get_api()
-longpoll = VkBotLongPoll(vk_session, GROUP_ID)
+longpoll = VkBotLongPoll(vk_session, GROUP_ID, wait=25)
 
 print("VK-бот запущен!")
 
@@ -407,5 +407,11 @@ while True:
             send(vk_id, "❓ Не понял. Используй кнопки ниже 👇", keyboard=make_main_keyboard())
 
     except Exception as e:
-        print(f"Ошибка соединения с VK: {e}. Переподключение через 30 секунд...")
-        time.sleep(30)
+        print(f"Ошибка соединения с VK: {e}. Пересоздаю Long Poll...")
+        time.sleep(5)
+        try:
+            longpoll = create_longpoll()
+            print("Long Poll пересоздан.")
+        except Exception as err:
+            print(f"Не удалось пересоздать Long Poll: {err}")
+            time.sleep(30)
