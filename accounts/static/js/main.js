@@ -166,6 +166,17 @@ function animateNumber(el) {
     }
     requestAnimationFrame(tick);
 }
+// Запуск анимации для всех карточек при загрузке страницы
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.stat-value').forEach(el => {
+        // Если есть data-value — запускаем анимацию
+        if (el.dataset.value) {
+            // Сначала очищаем текст (чтобы не было мелькания старого числа)
+            el.textContent = '';
+            animateNumber(el);
+        }
+    });
+});
 
 // ============ ПРОГРЕСС БЮДЖЕТА ============
 document.addEventListener('DOMContentLoaded', () => {
