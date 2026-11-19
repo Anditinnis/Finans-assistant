@@ -22,24 +22,34 @@
         </div>
     </div>
 
-    <div class="stats-grid">
+        <div class="stats-grid">
         <div class="stat-card">
             <div class="stat-label">Баланс</div>
-            <div class="stat-value {% if balance >= 0 %}positive{% else %}negative{% endif %}">
+            <div class="stat-value {% if balance >= 0 %}positive{% else %}negative{% endif %}" 
+                 data-value="{{ balance }}" data-suffix=" ₽">
                 {{ balance|floatformat:2 }} ₽
             </div>
         </div>
         <div class="stat-card">
             <div class="stat-label">Доходы за месяц</div>
-            <div class="stat-value positive">{{ month_income|floatformat:2 }} ₽</div>
+            <div class="stat-value positive" 
+                 data-value="{{ month_income }}" data-suffix=" ₽">
+                {{ month_income|floatformat:2 }} ₽
+            </div>
         </div>
         <div class="stat-card">
             <div class="stat-label">Расходы за месяц</div>
-            <div class="stat-value negative">{{ month_expense|floatformat:2 }} ₽</div>
+            <div class="stat-value negative" 
+                 data-value="{{ month_expense }}" data-suffix=" ₽">
+                {{ month_expense|floatformat:2 }} ₽
+            </div>
         </div>
         <div class="stat-card">
             <div class="stat-label">Транзакций</div>
-            <div class="stat-value">{{ transactions_count }}</div>
+            <div class="stat-value" 
+                 data-value="{{ transactions_count }}" data-suffix="">
+                {{ transactions_count }}
+            </div>
         </div>
     </div>
 
