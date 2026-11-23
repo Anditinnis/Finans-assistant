@@ -91,8 +91,12 @@
             return;
         }
 
-        Chart.defaults.color = '#94a3b8';
-        Chart.defaults.borderColor = 'rgba(255,255,255,0.08)';
+        const rootStyles = getComputedStyle(document.documentElement);
+        const chartText = rootStyles.getPropertyValue('--chart-text').trim() || '#94a3b8';
+        const chartGrid = rootStyles.getPropertyValue('--chart-grid').trim() || 'rgba(255,255,255,0.05)';
+
+        Chart.defaults.color = chartText;
+        Chart.defaults.borderColor = chartGrid;
         Chart.defaults.font.family = "'Inter', sans-serif";
 
         const categoryCanvas = document.getElementById('categoryChart');
@@ -151,7 +155,7 @@
                     responsive: true, maintainAspectRatio: false,
                     plugins: { legend: { position: 'top', labels: { padding: 16 } } },
                     scales: {
-                        y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } },
+                        y: { beginAtZero: true, grid: { color: chartGrid } },
                         x: { grid: { display: false } }
                     }
                 }
@@ -179,12 +183,41 @@
                     responsive: true, maintainAspectRatio: false,
                     plugins: { legend: { display: false } },
                     scales: {
-                        y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } },
+                        y: { beginAtZero: true, grid: { color: chartGrid } },
                         x: { grid: { display: false } }
                     }
                 }
             });
         }
+
+        // Перекрашиваем графики при смене темы без перезагрузки страницы.
+        document.addEventListener('themechange', () => {
+            const styles = getComputedStyle(document.documentElement);
+            const text = styles.getPropertyValue('--chart-text').trim() || chartText;
+            const grid = styles.getPropertyValue('--chart-grid').trim() || chartGrid;
+
+            Chart.defaults.color = text;
+
+            ['categoryChart', 'monthlyChart', 'weekdayChart'].forEach((id) => {
+                const element = document.getElementById(id);
+                const chart = element && Chart.getChart(element);
+                if (!chart) return;
+
+                if (chart.options.plugins && chart.options.plugins.legend
+                    && chart.options.plugins.legend.labels) {
+                    chart.options.plugins.legend.labels.color = text;
+                }
+
+                if (chart.options.scales) {
+                    Object.values(chart.options.scales).forEach((scale) => {
+                        if (scale.grid) scale.grid.color = grid;
+                        if (scale.ticks) scale.ticks.color = text;
+                    });
+                }
+
+                chart.update('none');
+            });
+        });
     })();
 </script>
 {% endblock %}

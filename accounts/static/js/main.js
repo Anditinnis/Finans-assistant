@@ -47,7 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('resize', () => {
         clearTimeout(resizeTimer);
         resizeTimer = setTimeout(() => {
-            if (window.innerWidth > 768 && navLinks.classList.contains('active')) {
+            if (window.innerWidth > 1024 && navLinks.classList.contains('active')) {
                 toggleMenu(false);
             }
         }, 150);
@@ -288,4 +288,273 @@ setTimeout(hideLoader, 1500);
 // при возврате со страницы через bfcache — лоадер не нужен
 window.addEventListener('pageshow', (e) => {
     if (e.persisted) hideLoader();
+});
+
+// ============ ТЕМЫ ОФОРМЛЕНИЯ ============
+(function initThemeSwitcher() {
+    const STORAGE_THEME = 'budget-theme';
+    const STORAGE_EFFECTS = 'budget-effects';
+    const root = document.documentElement;
+    const meta = document.getElementById('themeColorMeta');
+    const switcher = document.getElementById('themeSwitcher');
+    const toggle = document.getElementById('themeToggle');
+    const effectsInput = document.getElementById('effectsToggle');
+
+    const THEME_COLORS = {
+        midnight: '#0a0e27',
+        light: '#f5f7fb',
+        neon: '#05010f',
+        sunset: '#1a0f14',
+    };
+
+    function applyTheme(name, persist) {
+        if (!THEME_COLORS[name]) name = 'midnight';
+        root.setAttribute('data-theme', name);
+        if (meta) meta.setAttribute('content', THEME_COLORS[name]);
+
+        document.querySelectorAll('[data-theme-value]').forEach((btn) => {
+            const active = btn.dataset.themeValue === name;
+            btn.classList.toggle('is-active', active);
+            btn.setAttribute('aria-pressed', String(active));
+        });
+
+        if (persist) {
+            try { localStorage.setItem(STORAGE_THEME, name); } catch (e) { /* ignore */ }
+        }
+
+        document.dispatchEvent(new CustomEvent('themechange', { detail: { theme: name } }));
+    }
+
+    function setEffects(enabled, persist) {
+        root.setAttribute('data-effects', enabled ? 'on' : 'off');
+        if (effectsInput) effectsInput.checked = enabled;
+        if (persist) {
+            try { localStorage.setItem(STORAGE_EFFECTS, enabled ? 'on' : 'off'); } catch (e) { /* ignore */ }
+        }
+        document.dispatchEvent(new CustomEvent('effectstoggle', { detail: { enabled } }));
+    }
+
+    function closeMenu() {
+        if (!switcher) return;
+        switcher.classList.remove('open');
+        if (toggle) toggle.setAttribute('aria-expanded', 'false');
+    }
+
+    if (toggle && switcher) {
+        toggle.addEventListener('click', (event) => {
+            event.stopPropagation();
+            const isOpen = switcher.classList.toggle('open');
+            toggle.setAttribute('aria-expanded', String(isOpen));
+        });
+    }
+
+    document.querySelectorAll('[data-theme-value]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            applyTheme(btn.dataset.themeValue, true);
+            closeMenu();
+        });
+    });
+
+    if (effectsInput) {
+        effectsInput.addEventListener('change', () => setEffects(effectsInput.checked, true));
+    }
+
+    document.addEventListener('click', (event) => {
+        if (switcher && !switcher.contains(event.target)) closeMenu();
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') closeMenu();
+    });
+
+    // Синхронизируем интерфейс с темой, которую применил анти-вспышечный скрипт.
+    applyTheme(root.getAttribute('data-theme') || 'midnight', false);
+    setEffects(root.getAttribute('data-effects') !== 'off', false);
+})();
+
+// ============ ЧАСТИЦЫ ЗА КУРСОРОМ ============
+(function initParticles() {
+    const canvas = document.getElementById('fxCanvas');
+    if (!canvas || !canvas.getContext) return;
+
+    const root = document.documentElement;
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const coarsePointer = window.matchMedia('(hover: none)').matches;
+
+    if (reduceMotion || coarsePointer) {
+        canvas.remove();
+        return;
+    }
+
+    const ctx = canvas.getContext('2d');
+    const particles = [];
+    const ambient = [];
+    const MAX_PARTICLES = 70;
+    let colors = ['#6366f1', '#8b5cf6', '#ec4899', '#06b6d4'];
+    let width = 0;
+    let height = 0;
+    let dpr = 1;
+    let lastSpawn = 0;
+    let rafId = null;
+
+    function effectsEnabled() {
+        return root.getAttribute('data-effects') !== 'off';
+    }
+
+    function readColors() {
+        const raw = getComputedStyle(root).getPropertyValue('--fx-colors') || '';
+        const parsed = raw.split(',').map((item) => item.trim()).filter(Boolean);
+        if (parsed.length) colors = parsed;
+    }
+
+    function pickColor() {
+        return colors[Math.floor(Math.random() * colors.length)];
+    }
+
+    function makeAmbient() {
+        return {
+            x: Math.random() * width,
+            y: Math.random() * height,
+            r: 1.2 + Math.random() * 2.4,
+            vx: (Math.random() - 0.5) * 0.12,
+            vy: -0.05 - Math.random() * 0.12,
+            alpha: 0.12 + Math.random() * 0.25,
+            color: pickColor(),
+        };
+    }
+
+    function seedAmbient() {
+        ambient.length = 0;
+        const count = Math.max(8, Math.round(width / 170));
+        for (let i = 0; i < count; i += 1) ambient.push(makeAmbient());
+    }
+
+    function resize() {
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        width = window.innerWidth;
+        height = window.innerHeight;
+        canvas.width = Math.floor(width * dpr);
+        canvas.height = Math.floor(height * dpr);
+        canvas.style.width = width + 'px';
+        canvas.style.height = height + 'px';
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        seedAmbient();
+    }
+
+    function spawn(x, y) {
+        if (particles.length >= MAX_PARTICLES) return;
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 0.15 + Math.random() * 0.55;
+        particles.push({
+            x: x,
+            y: y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed - 0.15,
+            r: 1.5 + Math.random() * 3.5,
+            life: 1,
+            decay: 0.008 + Math.random() * 0.012,
+            color: pickColor(),
+        });
+    }
+
+    function draw() {
+        if (!effectsEnabled()) {
+            rafId = null;
+            return;
+        }
+
+        ctx.clearRect(0, 0, width, height);
+
+        ambient.forEach((p) => {
+            p.x += p.vx;
+            p.y += p.vy;
+            if (p.y < -10) {
+                p.y = height + 10;
+                p.x = Math.random() * width;
+            }
+            if (p.x < -10) p.x = width + 10;
+            if (p.x > width + 10) p.x = -10;
+
+            ctx.beginPath();
+            ctx.globalAlpha = p.alpha;
+            ctx.fillStyle = p.color;
+            ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+            ctx.fill();
+        });
+
+        for (let i = particles.length - 1; i >= 0; i -= 1) {
+            const p = particles[i];
+            p.x += p.vx;
+            p.y += p.vy;
+            p.vy += 0.008;
+            p.vx *= 0.995;
+            p.vy *= 0.995;
+            p.life -= p.decay;
+
+            if (p.life <= 0) {
+                particles.splice(i, 1);
+                continue;
+            }
+
+            ctx.beginPath();
+            ctx.globalAlpha = p.life * 0.55;
+            ctx.fillStyle = p.color;
+            ctx.arc(p.x, p.y, p.r * p.life, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        ctx.globalAlpha = 1;
+        rafId = requestAnimationFrame(draw);
+    }
+
+    function start() {
+        if (rafId || !effectsEnabled()) return;
+        rafId = requestAnimationFrame(draw);
+    }
+
+    function stop() {
+        if (rafId) cancelAnimationFrame(rafId);
+        rafId = null;
+        particles.length = 0;
+        ctx.clearRect(0, 0, width, height);
+    }
+
+    window.addEventListener('mousemove', (event) => {
+        if (!effectsEnabled()) return;
+        const now = performance.now();
+        if (now - lastSpawn < 45) return;
+        lastSpawn = now;
+        spawn(event.clientX, event.clientY);
+        if (Math.random() > 0.6) {
+            spawn(
+                event.clientX + (Math.random() - 0.5) * 18,
+                event.clientY + (Math.random() - 0.5) * 18
+            );
+        }
+    }, { passive: true });
+
+    document.addEventListener('themechange', readColors);
+
+    document.addEventListener('effectstoggle', (event) => {
+        if (event.detail.enabled) start();
+        else stop();
+    });
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) stop();
+        else start();
+    });
+
+    window.addEventListener('resize', resize, { passive: true });
+
+    readColors();
+    resize();
+    start();
+})();
+
+// ============ УБОРКА ТОСТОВ ============
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.toast').forEach((toast, index) => {
+        setTimeout(() => toast.remove(), 4600 + index * 200);
+    });
 });

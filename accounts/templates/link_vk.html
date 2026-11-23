@@ -22,14 +22,14 @@
         {% elif code %}
             <h2>Код получен ✅</h2>
             <p class="subtitle">Отправь этот код боту в ВК командой:</p>
-            <div style="background: rgba(0,0,0,0.3); padding: 20px; border-radius: 12px;
+            <div style="background: var(--bg-input); padding: 20px; border-radius: 12px;
                         text-align: center; font-size: 24px; font-weight: 700;
                         letter-spacing: 4px; margin: 20px 0; color: var(--accent);">
                 {{ code }}
             </div>
             <p style="color: var(--text-muted); font-size: 0.9rem;">
                 В боте напиши:
-                <code style="background: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 6px;">
+                <code style="background: var(--bg-hover); padding: 4px 8px; border-radius: 6px;">
                     /link {{ code }}
                 </code>
             </p>

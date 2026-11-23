@@ -46,17 +46,19 @@
             {% if user.profile.vk_id %}
             <form method="post" action="{% url 'unlink_vk' %}" style="margin-top: 12px;">
                 {% csrf_token %}
-                <button type="submit" class="btn btn-outline" style="width:100%; border-color: #ef4444; color: #ef4444;"
+                <button type="submit" class="btn btn-outline" style="width:100%; border-color: var(--danger); color: var(--danger);"
                     onclick="return confirm('Отвязать VK-аккаунт?');">
                     🔓 Отвязать ВК
                 </button>
             </form>
+            {% else %}
+            <a href="{% url 'link_vk' %}" class="btn btn-primary" style="width:100%; margin-top: 12px;">
+                🤖 Привязать ВК
+            </a>
             {% endif %}
+
             <a href="{% url 'profile_edit' %}" class="btn btn-outline" style="width:100%;margin-top:8px;">
                 ✏️ Редактировать профиль
-            </a>
-            <a href="{% url 'link_vk' %}" class="btn btn-primary" style="width:100%; margin-top: 20px;">
-                🤖 Привязать ВК
             </a>
 
             <!-- Кнопка перехода в само сообщество ВК -->

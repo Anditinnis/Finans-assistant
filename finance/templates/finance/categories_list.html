@@ -66,11 +66,21 @@
                                     </span>
                                 </div>
                             </div>
-                            <form method="post" action="{% url 'category_delete' c.pk %}"
-                                  onsubmit="return confirm('Удалить категорию и все её транзакции?');">
-                                {% csrf_token %}
-                                <button type="submit" class="btn-icon">🗑️</button>
-                            </form>
+                            <div class="category-actions">
+                                <span class="category-count">{{ c.tx_count }} оп.</span>
+                                {% if c.tx_count %}
+                                <span class="btn-icon is-disabled"
+                                      title="Нельзя удалить категорию, в которой есть операции">
+                                    🔒
+                                </span>
+                                {% else %}
+                                <form method="post" action="{% url 'category_delete' c.pk %}"
+                                      onsubmit="return confirm('Удалить категорию «{{ c.name }}»?');">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn-icon" title="Удалить категорию">🗑️</button>
+                                </form>
+                                {% endif %}
+                            </div>
                         </div>
                     {% endfor %}
                 </div>

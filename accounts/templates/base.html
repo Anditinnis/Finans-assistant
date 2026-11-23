@@ -1,17 +1,38 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" data-theme="midnight" data-effects="on">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="theme-color" content="#0a0e27">
+    <meta name="theme-color" content="#0a0e27" id="themeColorMeta">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>{% block title %}Мой Бюджет{% endblock %}</title>
+
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%236366f1'/%3E%3Crect x='15' y='34' width='8' height='14' rx='2' fill='white'/%3E%3Crect x='28' y='25' width='8' height='23' rx='2' fill='white'/%3E%3Crect x='41' y='17' width='8' height='31' rx='2' fill='white'/%3E%3C/svg%3E">
+
+    <script>
+        // Применяем сохранённую тему до загрузки CSS, чтобы не было вспышки.
+        (function () {
+            try {
+                var root = document.documentElement;
+                var theme = localStorage.getItem('budget-theme');
+                if (!theme) {
+                    theme = window.matchMedia('(prefers-color-scheme: light)').matches
+                        ? 'light' : 'midnight';
+                }
+                root.setAttribute('data-theme', theme);
+                if (localStorage.getItem('budget-effects') === 'off') {
+                    root.setAttribute('data-effects', 'off');
+                }
+            } catch (e) { /* приватный режим — игнорируем */ }
+        })();
+    </script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=20261123">
 </head>
 <body>
 
@@ -26,6 +47,9 @@
     <div class="blob"></div>
 </div>
 
+<!-- Слой частиц, реагирующих на курсор -->
+<canvas class="fx-canvas" id="fxCanvas" aria-hidden="true"></canvas>
+
 <nav class="navbar">
     <div class="nav-inner">
         <a href="{% url 'home' %}" class="logo">📊 <span>Бюджет</span></a>
@@ -36,27 +60,59 @@
             <span></span>
         </button>
 
-    <div class="nav-links" id="navLinks">
-    {% if user.is_authenticated %}
-        <a href="{% url 'dashboard' %}" class="btn btn-outline">Дашборд</a>
-        <a href="{% url 'transactions_list' %}" class="btn btn-ghost">Транзакции</a>
-        <a href="{% url 'categories_list' %}" class="btn btn-ghost">Категории</a>
-        <a href="{% url 'analytics' %}" class="btn btn-ghost">Аналитика</a>
+        <div class="nav-links" id="navLinks">
+            {% with current=request.resolver_match.url_name %}
+            {% if user.is_authenticated %}
+            <a href="{% url 'dashboard' %}" class="btn btn-outline {% if current == 'dashboard' %}is-active{% endif %}">Дашборд</a>
+            <a href="{% url 'transactions_list' %}" class="btn btn-ghost {% if current == 'transactions_list' or current == 'transaction_edit' %}is-active{% endif %}">Транзакции</a>
+            <a href="{% url 'categories_list' %}" class="btn btn-ghost {% if current == 'categories_list' %}is-active{% endif %}">Категории</a>
+            <a href="{% url 'analytics' %}" class="btn btn-ghost {% if current == 'analytics' %}is-active{% endif %}">Аналитика</a>
+            {% else %}
+            <a href="{% url 'login' %}" class="btn btn-ghost {% if current == 'login' %}is-active{% endif %}">Вход</a>
+            <a href="{% url 'register' %}" class="btn btn-primary">Начать</a>
+            {% endif %}
+            {% endwith %}
 
-        <a href="{% url 'profile' %}" class="user-badge" style="text-decoration:none;">
-            <div class="avatar">{{ user.username|first|upper }}</div>
-            <span class="username">{{ user.username }}</span>
-        </a>
+            <div class="theme-switcher" id="themeSwitcher">
+                <button type="button" class="theme-toggle" id="themeToggle"
+                        aria-haspopup="true" aria-expanded="false" aria-controls="themeMenu">
+                    <span class="theme-toggle-icon" aria-hidden="true">🎨</span>
+                    <span>Тема</span>
+                </button>
+                <div class="theme-menu" id="themeMenu" role="menu" aria-label="Оформление">
+                    <p class="theme-menu-title">Оформление</p>
+                    <button type="button" class="theme-option" data-theme-value="midnight" role="menuitem">
+                        <span class="theme-swatch" data-swatch="midnight"></span>Полночь
+                    </button>
+                    <button type="button" class="theme-option" data-theme-value="light" role="menuitem">
+                        <span class="theme-swatch" data-swatch="light"></span>Светлая
+                    </button>
+                    <button type="button" class="theme-option" data-theme-value="neon" role="menuitem">
+                        <span class="theme-swatch" data-swatch="neon"></span>Неон
+                    </button>
+                    <button type="button" class="theme-option" data-theme-value="sunset" role="menuitem">
+                        <span class="theme-swatch" data-swatch="sunset"></span>Закат
+                    </button>
+                    <div class="theme-menu-sep"></div>
+                    <label class="theme-effects">
+                        <input type="checkbox" id="effectsToggle">
+                        <span>Частицы за курсором</span>
+                    </label>
+                </div>
+            </div>
 
-        <form method="post" action="{% url 'logout' %}" class="logout-form">
-            {% csrf_token %}
-            <button type="submit" class="btn btn-ghost">Выйти</button>
-        </form>
-    {% else %}
-        <a href="{% url 'login' %}" class="btn btn-ghost">Вход</a>
-        <a href="{% url 'register' %}" class="btn btn-primary">Начать</a>
-    {% endif %}
-</div>
+            {% if user.is_authenticated %}
+            <a href="{% url 'profile' %}" class="user-badge" style="text-decoration:none;">
+                <div class="avatar">{{ user.username|first|upper }}</div>
+                <span class="username">{{ user.username }}</span>
+            </a>
+
+            <form method="post" action="{% url 'logout' %}" class="logout-form">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-ghost">Выйти</button>
+            </form>
+            {% endif %}
+        </div>
     </div>
 </nav>
 
@@ -65,8 +121,20 @@
 </main>
 
 <footer>
-    <div class="container">
-        <p>© 2026 Мой Бюджет · Сделано с ❤️ на Django</p>
+    <div class="container footer-inner">
+        <p>© {% now "Y" %} Мой Бюджет · Сделано с ❤️ на Django</p>
+        <nav class="footer-nav" aria-label="Навигация в подвале">
+            {% if user.is_authenticated %}
+            <a href="{% url 'dashboard' %}">Дашборд</a>
+            <a href="{% url 'transactions_list' %}">Транзакции</a>
+            <a href="{% url 'analytics' %}">Аналитика</a>
+            <a href="{% url 'profile' %}">Профиль</a>
+            {% else %}
+            <a href="{% url 'login' %}">Вход</a>
+            <a href="{% url 'register' %}">Регистрация</a>
+            {% endif %}
+        </nav>
+        <p class="footer-note">Django · VK-бот</p>
     </div>
 </footer>
 
@@ -79,7 +147,7 @@
 {% endif %}
 
 <!-- main.js В КОНЦЕ, чтобы не блокировал рендер -->
-<script src="{% static 'js/main.js' %}"></script>
+<script src="{% static 'js/main.js' %}?v=20261123"></script>
 {% block extra_js %}{% endblock %}
 
 </body>

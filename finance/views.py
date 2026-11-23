@@ -4,7 +4,7 @@ from decimal import Decimal
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import IntegrityError
-from django.db.models import Q, Sum
+from django.db.models import Count, Q, Sum
 from django.db.models.functions import ExtractWeekDay, TruncMonth
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -103,7 +103,7 @@ def transaction_edit(request, pk):
 
 @login_required
 def categories_list(request):
-    qs = Category.objects.filter(user=request.user)
+    qs = Category.objects.filter(user=request.user).annotate(tx_count=Count('transactions'))
 
     if request.method == 'POST':
         form = CategoryForm(request.POST)
