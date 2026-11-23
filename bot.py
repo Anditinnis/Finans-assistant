@@ -1,15 +1,24 @@
+import logging
 import os
-import vk_api
-import requests
-import time
+import tempfile
 import threading
+import time
+from decimal import Decimal, InvalidOperation
 
-from vk_api.bot_longpoll import VkBotLongPoll, VkBotEventType
+import requests
+import vk_api
+from dotenv import load_dotenv
+from vk_api.bot_longpoll import VkBotEventType, VkBotLongPoll
 from vk_api.keyboard import VkKeyboard, VkKeyboardColor
 from vk_api.utils import get_random_id
-from dotenv import load_dotenv
 
 load_dotenv()
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s %(levelname)s %(name)s: %(message)s',
+)
+logger = logging.getLogger('vk-bot')
 
 VK_TOKEN = os.getenv("VK_TOKEN")
 API_URL = os.getenv("API_URL", "http://127.0.0.1:8000")
@@ -27,7 +36,7 @@ vk_session = vk_api.VkApi(token=VK_TOKEN)
 vk = vk_session.get_api()
 longpoll = VkBotLongPoll(vk_session, GROUP_ID, wait=25)
 
-print("VK-бот запущен!")
+logger.info("VK-бот запущен!")
 
 user_states = {}
 
@@ -60,7 +69,7 @@ def api_post(path, data):
             timeout=10
         )
     except requests.RequestException as e:
-        print(f"API error: {e}")
+        logger.error("API POST %s: %s", path, e)
         return None
 
 
@@ -73,7 +82,7 @@ def api_get(path, params=None):
             timeout=10
         )
     except requests.RequestException as e:
-        print(f"API error: {e}")
+        logger.error("API GET %s: %s", path, e)
         return None
 
 
@@ -91,8 +100,8 @@ def get_vk_avatar_url(vk_id):
         })
         if user_info and user_info[0].get('photo_200'):
             return user_info[0]['photo_200']
-    except Exception as e:
-        print(f"VK avatar error: {e}")
+    except Exception:
+        logger.exception("Не удалось получить аватар VK для %s", vk_id)
     return None
 
 
@@ -108,8 +117,8 @@ def send(vk_user_id, text, keyboard=None, attachment=None):
         if attachment:
             params["attachment"] = attachment
         vk.messages.send(**params)
-    except Exception as e:
-        print(f"Send error: {e}")
+    except Exception:
+        logger.exception("Не удалось отправить сообщение %s", vk_user_id)
 
 
 def make_main_keyboard():
@@ -142,8 +151,8 @@ def delete_history(vk_user_id, count=50):
             return 0
         vk.messages.delete(message_ids=",".join(message_ids), delete_for_all=1)
         return len(message_ids)
-    except Exception as e:
-        print(f"Delete error: {e}")
+    except Exception:
+        logger.exception("Не удалось удалить историю %s", vk_user_id)
         return -1
 
 
@@ -188,7 +197,7 @@ while True:
 
             vk_id = event.object.message["from_id"]
             text = event.object.message.get("text", "").strip()
-            print(f"[{vk_id}] {text}")
+            logger.info("[%s] %s", vk_id, text)
 
             if not text:
                 continue
@@ -210,15 +219,20 @@ while True:
                          keyboard=make_cancel_inline())
                     continue
                 try:
-                    amount = float(parts[0].replace(",", "."))
-                except ValueError:
+                    amount = Decimal(parts[0].replace(",", "."))
+                except (InvalidOperation, ValueError):
                     send(vk_id, "❌ Сумма должна быть числом. Попробуй: 500 еда",
                          keyboard=make_cancel_inline())
                     continue
+                if not amount.is_finite() or amount <= 0:
+                    send(vk_id, "❌ Сумма должна быть больше нуля.",
+                         keyboard=make_cancel_inline())
+                    continue
+                amount = amount.quantize(Decimal("0.01"))
                 category = parts[1].strip()
                 resp = api_post("/api/add/", {
                     "vk_id": vk_id,
-                    "amount": amount,
+                    "amount": str(amount),
                     "category": category,
                     "type": "expense"
                 })
@@ -284,8 +298,8 @@ while True:
                     import matplotlib
                     matplotlib.use('Agg')
                     import matplotlib.pyplot as plt
-                except Exception as e:
-                    print(f"matplotlib not available: {e}")
+                except Exception:
+                    logger.exception("matplotlib недоступен")
                     send(vk_id, "⚠️ Графики временно недоступны.", keyboard=make_main_keyboard())
                     continue
 
@@ -313,7 +327,9 @@ while True:
                 ax.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=90,
                        colors=colors[:len(labels)], textprops={'fontsize': 10})
                 ax.set_title("Расходы по категориям", fontsize=13, fontweight='bold')
-                path = f"/tmp/chart_{vk_id}_{int(time.time())}.png"
+                path = os.path.join(
+                    tempfile.gettempdir(), f"chart_{vk_id}_{int(time.time())}.png"
+                )
                 fig.savefig(path, bbox_inches='tight', facecolor='white')
                 plt.close(fig)
 
@@ -330,8 +346,8 @@ while True:
                     attachment = f"photo{saved['owner_id']}_{saved['id']}"
                     send(vk_id, "📊 Твои расходы по категориям:", attachment=attachment,
                          keyboard=make_main_keyboard())
-                except Exception as e:
-                    print(f"Chart upload error: {e}")
+                except Exception:
+                    logger.exception("Не удалось отправить график %s", vk_id)
                     send(vk_id, "⚠️ Не удалось отправить график.", keyboard=make_main_keyboard())
                 finally:
                     try:
@@ -406,6 +422,6 @@ while True:
             # ---------- Неизвестная команда ----------
             send(vk_id, "❓ Не понял. Используй кнопки ниже 👇", keyboard=make_main_keyboard())
 
-    except Exception as e:
-        print(f"Ошибка соединения с VK: {e}. Переподключение через 30 секунд...")
+    except Exception:
+        logger.exception("Ошибка соединения с VK. Переподключение через 30 секунд...")
         time.sleep(30)

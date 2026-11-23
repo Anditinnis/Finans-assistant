@@ -1,5 +1,10 @@
+from decimal import Decimal
+
 from django import forms
+
 from .models import Category, Transaction
+
+MAX_AMOUNT = Decimal('99999999.99')
 
 
 class TransactionForm(forms.ModelForm):
@@ -30,6 +35,14 @@ class TransactionForm(forms.ModelForm):
             raise forms.ValidationError('Нельзя использовать чужую категорию')
         return category
 
+    def clean_amount(self):
+        amount = self.cleaned_data['amount']
+        if amount is None or amount <= 0:
+            raise forms.ValidationError('Сумма должна быть больше нуля')
+        if amount > MAX_AMOUNT:
+            raise forms.ValidationError('Сумма слишком большая')
+        return amount
+
 
 class CategoryForm(forms.ModelForm):
     class Meta:
@@ -44,3 +57,9 @@ class CategoryForm(forms.ModelForm):
             'icon': 'Иконка (эмодзи)',
             'color': 'Цвет',
         }
+
+    def clean_name(self):
+        name = (self.cleaned_data.get('name') or '').strip()
+        if not name:
+            raise forms.ValidationError('Название не может быть пустым')
+        return name

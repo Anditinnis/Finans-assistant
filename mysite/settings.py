@@ -12,22 +12,33 @@ https://docs.djangoproject.com/en/6.1/ref/settings/
 
 from pathlib import Path
 import os
+
 from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# .env нужно загрузить ДО чтения переменных окружения,
+# иначе SECRET_KEY / DEBUG / CSRF_TRUSTED_ORIGINS из файла игнорируются.
+load_dotenv(BASE_DIR / '.env')
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
+# Значение по умолчанию оставлено для совместимости с текущим деплоем.
+# В продакшене SECRET_KEY обязательно задаётся через переменную окружения.
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-o#%o8$ql0p%1jaam=y^@9&_t72ua8+9snx)3=lhp^us-b3f-6')
 
 # По умолчанию False. Uppcoder передает переменную, но для локальной разработки можно поменять.
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-# Разрешаем все хосты (для теста с Uppcoder это безопасно)
-ALLOWED_HOSTS = ['*']
+# Хосты можно переопределить через переменную окружения: "example.com,www.example.com".
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in os.environ.get('ALLOWED_HOSTS', '*').split(',')
+    if host.strip()
+] or ['*']
 
 # Настройка для корректной работы CSRF за HTTPS-прокси Uppcoder
 if os.environ.get('UPPCODER_SELF_URL'):
@@ -132,11 +143,10 @@ LOGIN_REDIRECT_URL = 'dashboard'
 LOGOUT_REDIRECT_URL = 'home'
 LOGIN_URL = 'login'
 
-# Email
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-
-# Загрузка .env для локальной разработки
-load_dotenv(BASE_DIR / '.env')
+# Email (для локальной разработки письма печатаются в консоль)
+EMAIL_BACKEND = os.environ.get(
+    'EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend'
+)
 
 API_URL = os.getenv('API_URL', 'http://127.0.0.1:8000')
 API_SECRET_KEY = os.getenv('API_SECRET_KEY', '')

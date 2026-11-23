@@ -1,6 +1,5 @@
 from django.urls import path
-from django.contrib.auth.decorators import login_required
-from django.views.generic import TemplateView
+
 from . import views
 
 urlpatterns = [
@@ -9,7 +8,5 @@ urlpatterns = [
     path('transactions/<int:pk>/delete/', views.transaction_delete, name='transaction_delete'),
     path('categories/', views.categories_list, name='categories_list'),
     path('categories/<int:pk>/delete/', views.category_delete, name='category_delete'),
-    path('analytics/', login_required(
-        TemplateView.as_view(template_name='finance/analytics.html')
-),  name='analytics'),
+    path('analytics/', views.analytics, name='analytics'),
 ]

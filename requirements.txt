@@ -1,12 +1,27 @@
+# Django
 Django>=5.0
+
+# Конфигурация и HTTP
 python-dotenv
 requests
 whitenoise
+
+# Изображения (ImageField в accounts.Profile)
+Pillow
+
+# VK-бот
+vk-api
+
+# Графики в VK-боте
+matplotlib
+
+# Продакшен-запуск
+gunicorn
 dj-database-url
 psycopg2-binary
-gunicorn
-vk-api
+
+# Legacy-часть (main.py + database.py).
+# Эти зависимости нужны только ей — можно удалить вместе с этими файлами.
 fastapi
 uvicorn
 pydantic
-matplotlib

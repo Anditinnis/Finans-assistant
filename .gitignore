@@ -1,0 +1,21 @@
+# Секреты и локальные настройки
+.env
+
+# База данных и медиа
+db.sqlite3
+media/
+staticfiles/
+
+# Логи и служебные файлы
+*.log
+bot_heartbeat.txt
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Редакторы
+.vscode/
+.idea/

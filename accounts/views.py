@@ -1,6 +1,5 @@
 import os
 import time
-import sqlite3
 from decimal import Decimal
 
 from django.shortcuts import render, redirect
